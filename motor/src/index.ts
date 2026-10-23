@@ -6,3 +6,4 @@ export * from './leitor/comprovante';
 export * from './leitor/classificar';
 export * from './calculo/jornada';
 export * from './calculo/intervalos';
+export * from './calculo/dia';
