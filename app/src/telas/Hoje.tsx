@@ -1,6 +1,7 @@
 import { arredondarParaMinutoSeguinte, formatarDuracao, formatarHoraCurta, formatarSaldo } from '@ponto-certo/motor';
 import { Avisos } from '../componentes/Avisos';
 import { BarrasSemana } from '../componentes/Barras';
+import { CartaoNotificacoes } from '../componentes/CartaoNotificacoes';
 import { CartaoPendencia } from '../componentes/CartaoPendencia';
 import { classeDoSaldo, partesDoSaldo } from '../dados/formatos';
 import { resumoHoje } from '../dados/hoje';
@@ -70,6 +71,8 @@ export function Hoje() {
         </div>
         <BarrasSemana dias={r.semana} />
       </div>
+
+      <CartaoNotificacoes />
 
       {r.pendencias.length > 0 && (
         <>

@@ -335,3 +335,9 @@ textarea.campo { min-height: 72px; resize: vertical; }
   .tabela-impressao th, .tabela-impressao td { border: 1px solid #ccc; padding: 3px 5px; text-align: left; }
   .tabela-impressao th { background: #eef6f0; }
 }
+
+/* ---------- notificações ---------- */
+.cartao-notificacao { border: 1px solid var(--acao-fundo); }
+.cartao-notificacao p { font-size: 13px; color: var(--texto-2); margin: 6px 0 12px; }
+.cartao-notificacao .grade-dois { margin-bottom: 0; }
+.cartao-notificacao.ok { border-color: var(--pos-fundo); }
