@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.superpowers/
+.clasp.json
+.env
+.env.*
+*.eml
+originais/
+*.log
+.DS_Store
+Thumbs.db

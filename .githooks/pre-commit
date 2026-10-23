@@ -1,0 +1,2 @@
+#!/bin/sh
+npx --no-install tsx scripts/verificar-dados-pessoais.ts --staged

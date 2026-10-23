@@ -1,0 +1,19 @@
+{
+  "name": "ponto-certo",
+  "private": true,
+  "type": "module",
+  "workspaces": ["motor"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p motor/tsconfig.json && tsc -p motor/tsconfig.src.json && tsc -p scripts/tsconfig.json",
+    "verificar:dados": "tsx scripts/verificar-dados-pessoais.ts",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
