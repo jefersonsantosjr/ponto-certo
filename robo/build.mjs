@@ -22,7 +22,7 @@ await build({
   },
 });
 
-const globais = ['doGet', 'doPost', 'onOpen', 'configurar', 'tick', 'vigia', 'checkupDiario', 'menuLinkDona', 'menuLinkLeitura', 'menuSincronizar', 'menuInicioBanco'];
+const globais = ['doGet', 'doPost', 'onOpen', 'configurar', 'tick', 'vigia', 'checkupDiario', 'menuLinkDona', 'menuLinkLeitura', 'menuSincronizar', 'menuInicioBanco', 'menuNotificacoes', 'salvarContaServico'];
 appendFileSync(aqui('./dist/Codigo.js'), '\n' + globais.map((n) => `function ${n}(e) { return PontoCerto.${n}(e); }`).join('\n') + '\n');
 copyFileSync(aqui('./appsscript.json'), aqui('./dist/appsscript.json'));
 console.log(`robo/dist pronto${implantacao.url ? ' (com URL da implantação)' : ' (sem URL da implantação ainda)'}`);

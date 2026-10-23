@@ -1,11 +1,15 @@
 import {
-  calcularPeriodo, configPadrao, formatarHora, formatarHorasPlanilha, formatarSaldoPlanilha, manuaisSubstituidas,
+  calcularPeriodo, configPadrao, formatarHora, formatarHorasPlanilha, formatarSaldoPlanilha, gerarNotificacao, manuaisSubstituidas,
   NOMES_DIAS, dataValida, diaDaSemana, respostasVigentes, segundosEntre,
 } from '../../motor/src/index';
-import type { Ajuste, BatidaRegistrada, ConfigCalculo, Estado, Papel, Resposta } from '../../motor/src/index';
+import type { AlertaGravado, Ajuste, BatidaRegistrada, ConfigCalculo, Estado, Papel, Resposta } from '../../motor/src/index';
 import { tratarRequisicao, type DependenciasApi } from './nucleo/api';
+import {
+  avisosDeAlertas, avisosDeBatidas, avisosDePendencias, avisosDoDia, pendenciasAbertas, tagDoEvento, type Aviso, type DadosAviso,
+} from './nucleo/notificar';
 import * as sessoes from './nucleo/sessoes';
 import { sincronizar, type ModoSincronizacao } from './nucleo/sincronizar';
+import * as fcm from './gas/fcm';
 import { gmailReal } from './gas/gmail';
 import * as planilha from './gas/planilha';
 import * as props from './gas/propriedades';
@@ -69,7 +73,7 @@ function executarSincronizacao(modo: ModoSincronizacao): void {
     planilha.acrescentarMensagens(r.novasMensagens);
     planilha.acrescentarBatidas(r.novasBatidas);
     planilha.atualizarBatidas(r.batidasAlteradas);
-    planilha.acrescentarAlertas(r.alertas, agora.iso);
+    const novosAlertas = planilha.acrescentarAlertas(r.alertas, agora.iso);
     if (r.conferencia) {
       planilha.acrescentarConferencia(r.conferencia);
       props.gravarUltimaConferencia(r.conferencia);
@@ -78,7 +82,58 @@ function executarSincronizacao(modo: ModoSincronizacao): void {
     props.gravarUltimaSincronizacao(agora.iso);
     if (r.novasBatidas.length || r.batidasAlteradas.length) atualizarDias();
     if (modo === 'completa') avisarVigiaExterno(Boolean(r.conferencia?.ok) && r.falhas.length === 0);
+    try {
+      notificar(r.novasBatidas, novosAlertas);
+    } catch (erro) {
+      console.warn(`Notificações: ${String(erro)}`);
+    }
   }, 25000);
+}
+
+// ---------------------------------------------------------------- notificações
+
+const URL_APP_DESTINO = (destino: string): string => `${__URL_APP__}${destino}`;
+
+function lerEnviados(): Record<string, string> {
+  try {
+    return JSON.parse(props.lerTexto('AVISOS_ENVIADOS') ?? '{}') as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+/** Decide e envia os avisos desta rodada; cada aviso (pela chave) sai uma vez só. */
+function notificar(novasBatidas: BatidaRegistrada[], novosAlertas: AlertaGravado[]): void {
+  if (!fcm.servidorPronto() || fcm.quantidadeAparelhos() === 0) return;
+  const agora = agoraLocal();
+  const d: DadosAviso = {
+    batidas: planilha.lerBatidas(), respostas: planilha.lerRespostas(), ajustes: planilha.lerAjustes(),
+    config: config(), hoje: agora.momento.data, agora: agora.momento.segundos,
+  };
+  const abertas = pendenciasAbertas(d);
+  const avisos: Aviso[] = [
+    ...avisosDeBatidas(novasBatidas, d),
+    ...avisosDeAlertas(novosAlertas),
+    ...avisosDePendencias(abertas),
+    ...avisosDoDia(d, abertas),
+  ];
+  const enviados = lerEnviados();
+  const limite = agora.momento.data;
+  let mudou = false;
+  for (const aviso of avisos) {
+    if (enviados[aviso.chave]) continue;
+    const n = gerarNotificacao(aviso.evento, { nome: nomeExibicao(), agora: agora.momento.segundos });
+    fcm.enviarParaTodos({ titulo: n.titulo, corpo: n.corpo, link: URL_APP_DESTINO(n.destino), tag: tagDoEvento(aviso.evento) });
+    enviados[aviso.chave] = limite;
+    mudou = true;
+  }
+  if (mudou) {
+    // Esquece chaves de mais de 10 dias (as de pendência continuam valendo enquanto a pendência existir).
+    for (const [chave, data] of Object.entries(enviados)) {
+      if (!chave.startsWith('pendencia|') && segundosEntre({ data, segundos: 0 }, { data: limite, segundos: 0 }) > 10 * 86400) delete enviados[chave];
+    }
+    props.gravarTexto('AVISOS_ENVIADOS', JSON.stringify(enviados));
+  }
 }
 
 function avisarVigiaExterno(ok: boolean): void {
@@ -144,6 +199,7 @@ function montarEstado(usuario: { nome: string; papel: Papel }): Estado {
     ajustes: planilha.lerAjustes(),
     alertas: planilha.lerAlertas(),
     saude: { ultimaSincronizacao: props.lerUltimaSincronizacao(), ultimaConferencia, problemas },
+    notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos() },
   };
 }
 
@@ -180,6 +236,16 @@ const dependencias: DependenciasApi = {
   marcarAlertasLidos: (ids) => {
     comTrava(() => planilha.marcarAlertasLidos(ids));
   },
+  registrarDispositivo: (fcmToken, aparelho, usuario) => {
+    comTrava(() => fcm.registrarAparelho(fcmToken, { nome: usuario.nome, papel: usuario.papel, aparelho }, agoraLocal().iso));
+  },
+  testarNotificacao: (fcmToken, usuario) =>
+    fcm.enviarPara(fcmToken, {
+      titulo: '🔔 Notificações ligadas!',
+      corpo: `Pronto, ${usuario.papel === 'dona' ? nomeExibicao() : usuario.nome}! A partir de agora eu aviso aqui cada batida, o resumo do dia e as pendências 😉`,
+      link: URL_APP_DESTINO('#/hoje'),
+      tag: 'teste',
+    }),
 };
 
 // ---------------------------------------------------------------- funções chamadas pelo Google
@@ -207,6 +273,7 @@ export function onOpen(): void {
     .addSeparator()
     .addItem('Sincronizar agora', 'menuSincronizar')
     .addItem('Ajustar início do banco', 'menuInicioBanco')
+    .addItem('Configurar notificações (Firebase)', 'menuNotificacoes')
     .addToUi();
 }
 
@@ -332,6 +399,24 @@ export function menuInicioBanco(): void {
   props.gravarConfig(nova);
   atualizarDias();
   ui.alert(`Pronto: o banco começa em ${data}, com saldo inicial de ${minutos} min. A aba "Dias" foi recalculada.`);
+}
+
+/** Janela para colar o conteúdo do .json da conta de serviço do Firebase (fica só nas Propriedades do Script). */
+export function menuNotificacoes(): void {
+  const situacao = fcm.servidorPronto() ? '✅ Já existe uma chave salva; colar outra substitui.' : 'Ainda não há chave salva.';
+  const html = HtmlService.createHtmlOutput(
+    `<div style="font-family:Arial,sans-serif;font-size:14px">` +
+      `<p>Abra o arquivo <b>.json</b> que o Firebase baixou (Contas de serviço → Gerar nova chave privada), copie <b>todo</b> o conteúdo e cole aqui.</p>` +
+      `<p style="color:#666">${situacao}</p>` +
+      `<textarea id="t" style="width:100%;height:150px;font-size:11px;font-family:monospace" placeholder='{ "type": "service_account", ... }'></textarea>` +
+      `<p><button id="b" onclick="var b=this;b.disabled=true;b.textContent='Salvando…';google.script.run.withSuccessHandler(function(m){document.getElementById('r').textContent=m;b.textContent='Salvar';b.disabled=false;}).withFailureHandler(function(e){document.getElementById('r').textContent='Erro: '+e.message;b.disabled=false;b.textContent='Salvar';}).salvarContaServico(document.getElementById('t').value)">Salvar</button></p>` +
+      `<p id="r" style="font-weight:bold"></p></div>`,
+  ).setWidth(560).setHeight(360);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Notificações — chave do Firebase');
+}
+
+export function salvarContaServico(texto: string): string {
+  return fcm.salvarConta(String(texto ?? '').trim());
 }
 
 // Mantém os imports de utilidades usados só em alguns caminhos.

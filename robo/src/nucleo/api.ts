@@ -12,6 +12,8 @@ export interface DependenciasApi {
   gravarBatidaManual(dados: { data: string; segundos: number; hora: string; justificativa: string }, autor: string): void;
   gravarAjuste(ajuste: Pick<Ajuste, 'data' | 'tipo' | 'segundos' | 'justificativa'>, autor: string): void;
   marcarAlertasLidos(ids: string[]): void;
+  registrarDispositivo(fcmToken: string, aparelho: string, usuario: { nome: string; papel: Papel }): void;
+  testarNotificacao(fcmToken: string, usuario: { nome: string; papel: Papel }): { enviada: boolean; detalhe: string };
 }
 
 const erro = (codigo: string, mensagem: string): RespostaApi<never> => ({ ok: false, erro: codigo, mensagem });
@@ -85,6 +87,17 @@ export function tratarRequisicao(corpo: string, d: DependenciasApi): RespostaApi
     case 'marcarAlertasLidos':
       d.marcarAlertasLidos(Array.isArray(req.ids) ? req.ids.map(String) : []);
       return { ok: true, dados: d.estado(usuario) };
+    case 'registrarDispositivo': {
+      const fcmToken = String(req.fcmToken ?? '');
+      if (fcmToken.length < 20 || fcmToken.length > 4096) return erro('token_invalido', 'Não consegui registrar este aparelho.');
+      d.registrarDispositivo(fcmToken, String(req.aparelho ?? '').slice(0, 120), usuario);
+      return { ok: true, dados: d.estado(usuario) };
+    }
+    case 'testarNotificacao': {
+      const fcmToken = String(req.fcmToken ?? '');
+      if (!fcmToken) return erro('token_invalido', 'Este aparelho ainda não ativou as notificações.');
+      return { ok: true, dados: d.testarNotificacao(fcmToken, usuario) };
+    }
     case 'sair':
       d.encerrar(req.token);
       return { ok: true, dados: null };

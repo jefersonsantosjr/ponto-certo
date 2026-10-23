@@ -116,17 +116,19 @@ const linhaAlerta = (a: AlertaGravado): string[] => [a.id, a.quando, a.alerta.ti
 export function lerAlertas(): AlertaGravado[] {
   return linhas('Alertas').map((l) => JSON.parse(l[4]) as AlertaGravado);
 }
-/** Grava só os alertas ainda não registrados (o id é "origem|tipo"). */
-export function acrescentarAlertas(novos: Array<{ origem: string; alerta: Alerta }>, quando: string): void {
+/** Grava só os alertas ainda não registrados (o id é "origem|tipo") e devolve os que entraram agora. */
+export function acrescentarAlertas(novos: Array<{ origem: string; alerta: Alerta }>, quando: string): AlertaGravado[] {
+  if (novos.length === 0) return [];
   const existentes = new Set(lerAlertas().map((a) => a.id));
-  const linhasNovas: string[][] = [];
+  const gravados: AlertaGravado[] = [];
   for (const { origem, alerta } of novos) {
     const id = `${origem}|${alerta.tipo}`;
     if (existentes.has(id)) continue;
     existentes.add(id);
-    linhasNovas.push(linhaAlerta({ id, quando, alerta, lido: false }));
+    gravados.push({ id, quando, alerta, lido: false });
   }
-  acrescentar('Alertas', linhasNovas);
+  acrescentar('Alertas', gravados.map(linhaAlerta));
+  return gravados;
 }
 export function marcarAlertasLidos(ids: string[]): void {
   const alvo = new Set(ids);

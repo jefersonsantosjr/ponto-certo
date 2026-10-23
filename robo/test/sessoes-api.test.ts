@@ -42,6 +42,7 @@ describe('sessões', () => {
 
 describe('API', () => {
   const estadoFalso = { ok: 'estado' } as unknown as Estado;
+  const registrados: string[] = [];
   function deps(papel: Papel | null): DependenciasApi & { gravadas: Resposta[] } {
     const gravadas: Resposta[] = [];
     return {
@@ -55,6 +56,8 @@ describe('API', () => {
       gravarBatidaManual: () => undefined,
       gravarAjuste: () => undefined,
       marcarAlertasLidos: () => undefined,
+      registrarDispositivo: (fcmToken) => void registrados.push(fcmToken),
+      testarNotificacao: (fcmToken) => ({ enviada: fcmToken === 'x'.repeat(30), detalhe: 'ok' }),
     };
   }
   const resposta: Resposta = { tipo: 'abono_intervalo', data: '2026-10-20', inicio: 36000, fim: 39000, abonado: true, justificativa: 'Dentista' };
@@ -86,5 +89,13 @@ describe('API', () => {
   it('batida manual exige horário válido', () => {
     const corpo = { acao: 'batidaManual', token: 't', data: '2026-10-22', hora: '25:00', justificativa: 'Esqueci de bater' };
     expect(tratarRequisicao(JSON.stringify(corpo), deps('dona'))).toMatchObject({ ok: false, erro: 'hora_invalida' });
+  });
+
+  it('registra o aparelho para notificações e testa o envio', () => {
+    const fcmToken = 'x'.repeat(30);
+    expect(tratarRequisicao(JSON.stringify({ acao: 'registrarDispositivo', token: 't', fcmToken, aparelho: 'Android' }), deps('leitura'))).toEqual({ ok: true, dados: estadoFalso });
+    expect(registrados).toContain(fcmToken);
+    expect(tratarRequisicao(JSON.stringify({ acao: 'registrarDispositivo', token: 't', fcmToken: 'curto', aparelho: 'x' }), deps('dona'))).toMatchObject({ ok: false, erro: 'token_invalido' });
+    expect(tratarRequisicao(JSON.stringify({ acao: 'testarNotificacao', token: 't', fcmToken }), deps('dona'))).toEqual({ ok: true, dados: { enviada: true, detalhe: 'ok' } });
   });
 });
