@@ -127,6 +127,18 @@ export function avisoDeCarinho(d: Pick<DadosAviso, 'hoje' | 'agora'>, de: string
   return [{ chave: `carinho|${d.hoje}`, evento: { tipo: 'carinho', de: de.trim() } }];
 }
 
+/**
+ * Recados extras com hora marcada (pedidos avulsos, ex.: "manda um às 17h hoje").
+ * `agendados` são 'AAAA-MM-DDTHH:MM:SS' locais; sai cada um uma vez, no dia dele, a partir da hora marcada.
+ */
+export function avisosDeRecadosExtras(agendados: string[], agoraIso: string, de: string): Aviso[] {
+  if (!de.trim()) return [];
+  const hoje = agoraIso.slice(0, 10);
+  return agendados
+    .filter((iso) => iso.slice(0, 10) === hoje && iso <= agoraIso)
+    .map((iso) => ({ chave: `carinho_extra|${iso}`, evento: { tipo: 'carinho' as const, de: de.trim() } }));
+}
+
 /** Tag da notificação no celular (agrupa as do mesmo tipo). */
 export function tagDoEvento(e: EventoNotificacao): string {
   switch (e.tipo) {

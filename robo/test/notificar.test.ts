@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { configPadrao, paraSegundos, type BatidaRegistrada, type Pendencia } from '../../motor/src/index';
-import { avisoDeCarinho, avisosDeBatidas, avisosDePendencias, avisosDoDia, horaDoCarinho, pendenciasAbertas, tagDoEvento, type DadosAviso } from '../src/nucleo/notificar';
+import { avisoDeCarinho, avisosDeBatidas, avisosDePendencias, avisosDeRecadosExtras, avisosDoDia, horaDoCarinho, pendenciasAbertas, tagDoEvento, type DadosAviso } from '../src/nucleo/notificar';
 
 const HOJE = '2026-10-23';
 const CONFIG = configPadrao('2026-10-22');
@@ -92,6 +92,22 @@ describe('recado de carinho', () => {
     expect(avisoDeCarinho({ hoje: HOJE, agora: hora }, 'João')).toEqual([{ chave: `carinho|${HOJE}`, evento: { tipo: 'carinho', de: 'João' } }]);
     expect(avisoDeCarinho({ hoje: HOJE, agora: paraSegundos('22:00') }, 'João')).toEqual([]);
     expect(avisoDeCarinho({ hoje: HOJE, agora: hora }, '  ')).toEqual([]);
+  });
+});
+
+describe('recados extras com hora marcada', () => {
+  const agendados = ['2026-10-23T17:00:00', '2026-10-24T09:00:00', '2026-10-22T17:00:00'];
+
+  it('sai só o de hoje, a partir da hora marcada', () => {
+    expect(avisosDeRecadosExtras(agendados, '2026-10-23T16:59:59', 'seu marido')).toEqual([]);
+    expect(avisosDeRecadosExtras(agendados, '2026-10-23T17:00:30', 'seu marido')).toEqual([
+      { chave: 'carinho_extra|2026-10-23T17:00:00', evento: { tipo: 'carinho', de: 'seu marido' } },
+    ]);
+  });
+
+  it('não manda os de outros dias nem quando o recado está desligado', () => {
+    expect(avisosDeRecadosExtras(agendados, '2026-10-25T10:00:00', 'seu marido')).toEqual([]);
+    expect(avisosDeRecadosExtras(agendados, '2026-10-23T18:00:00', '')).toEqual([]);
   });
 });
 

@@ -5,7 +5,7 @@ import {
 import type { AlertaGravado, Ajuste, BatidaRegistrada, ConfigCalculo, Estado, Papel, Resposta } from '../../motor/src/index';
 import { tratarRequisicao, type DependenciasApi } from './nucleo/api';
 import {
-  avisoDeCarinho, avisosDeAlertas, avisosDeBatidas, avisosDePendencias, avisosDoDia, pendenciasAbertas, tagDoEvento, type Aviso, type DadosAviso,
+  avisoDeCarinho, avisosDeAlertas, avisosDeBatidas, avisosDePendencias, avisosDeRecadosExtras, avisosDoDia, pendenciasAbertas, tagDoEvento, type Aviso, type DadosAviso,
 } from './nucleo/notificar';
 import * as sessoes from './nucleo/sessoes';
 import { sincronizar, type ModoSincronizacao } from './nucleo/sincronizar';
@@ -19,6 +19,23 @@ declare const __URL_ROBO__: string;
 declare const __URL_APP__: string;
 /** Só preenchido num build de instalação; grava a conta do Firebase nas Propriedades e some no build seguinte. */
 declare const __FCM_CONTA_EMBUTIDA__: string;
+/** Recados extras agendados no build (JSON de 'AAAA-MM-DDTHH:MM:SS'); o robô junta com os já guardados. */
+declare const __RECADOS_EXTRAS__: string;
+
+function lerRecadosExtras(): string[] {
+  try {
+    return JSON.parse(props.lerTexto('RECADOS_EXTRAS') ?? '[]') as string[];
+  } catch {
+    return [];
+  }
+}
+
+function instalarRecadosExtras(): void {
+  if (!__RECADOS_EXTRAS__) return;
+  const atuais = lerRecadosExtras();
+  const juntos = [...new Set([...atuais, ...(JSON.parse(__RECADOS_EXTRAS__) as string[])])].sort();
+  if (juntos.length !== atuais.length) props.gravarTexto('RECADOS_EXTRAS', JSON.stringify(juntos));
+}
 
 function instalarContaEmbutida(): void {
   if (__FCM_CONTA_EMBUTIDA__ && !fcm.servidorPronto()) console.log(fcm.salvarConta(__FCM_CONTA_EMBUTIDA__));
@@ -129,6 +146,7 @@ function notificar(novasBatidas: BatidaRegistrada[], novosAlertas: AlertaGravado
     ...avisosDePendencias(abertas),
     ...avisosDoDia(d, abertas),
     ...avisoDeCarinho(d, recadoDe()),
+    ...avisosDeRecadosExtras(lerRecadosExtras(), agora.iso, recadoDe()),
   ];
   const enviados = lerEnviados();
   const limite = agora.momento.data;
@@ -137,7 +155,8 @@ function notificar(novasBatidas: BatidaRegistrada[], novosAlertas: AlertaGravado
     if (enviados[aviso.chave]) continue;
     const carinho = aviso.evento.tipo === 'carinho';
     // O recado de carinho se reveza dia a dia (não repete o de ontem) e vai só para os aparelhos dela.
-    const sortear = carinho ? (n: number) => segundosEntre({ data: '2026-01-01', segundos: 0 }, agora.momento) / 86400 % n | 0 : undefined;
+    const deslocamento = aviso.chave.startsWith('carinho_extra|') ? 3 : 0; // o extra não repete o texto do recado do dia
+    const sortear = carinho ? (n: number) => (segundosEntre({ data: '2026-01-01', segundos: 0 }, agora.momento) / 86400 + deslocamento) % n | 0 : undefined;
     const n = gerarNotificacao(aviso.evento, { nome: nomeExibicao(), agora: agora.momento.segundos, sortear });
     fcm.enviarParaTodos({ titulo: n.titulo, corpo: n.corpo, link: URL_APP_DESTINO(n.destino), tag: tagDoEvento(aviso.evento) }, carinho ? 'dona' : undefined);
     enviados[aviso.chave] = limite;
@@ -268,7 +287,8 @@ const dependencias: DependenciasApi = {
 
 export function doGet(): GoogleAppsScript.Content.TextOutput {
   instalarContaEmbutida();
-  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos() } });
+  instalarRecadosExtras();
+  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos(), recadosAgendados: lerRecadosExtras().filter((iso) => iso >= agoraLocal().iso) } });
 }
 
 export function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
@@ -326,6 +346,7 @@ export function configurar(): void {
 
 export function tick(): void {
   instalarContaEmbutida();
+  instalarRecadosExtras();
   const agora = agoraLocal().momento.segundos;
   const completa = Math.floor(agora / 60) % 15 === 0;
   const noExpediente = agora >= INICIO_EXPEDIENTE && agora <= FIM_EXPEDIENTE;
