@@ -1,6 +1,6 @@
 import {
   calcularPeriodo, configPadrao, formatarHora, formatarHorasPlanilha, formatarSaldoPlanilha, manuaisSubstituidas,
-  NOMES_DIAS, diaDaSemana, respostasVigentes, segundosEntre,
+  NOMES_DIAS, dataValida, diaDaSemana, respostasVigentes, segundosEntre,
 } from '../../motor/src/index';
 import type { Ajuste, BatidaRegistrada, ConfigCalculo, Estado, Papel, Resposta } from '../../motor/src/index';
 import { tratarRequisicao, type DependenciasApi } from './nucleo/api';
@@ -206,6 +206,7 @@ export function onOpen(): void {
     .addItem('Gerar link de ativação (só leitura)', 'menuLinkLeitura')
     .addSeparator()
     .addItem('Sincronizar agora', 'menuSincronizar')
+    .addItem('Ajustar início do banco', 'menuInicioBanco')
     .addToUi();
 }
 
@@ -298,6 +299,39 @@ export function menuSincronizar(): void {
   SpreadsheetApp.getUi().alert(
     c ? `Conferido: ${c.totalGmail} e-mails no Gmail = ${c.totalPlanilha} registros ${c.ok ? '✓' : `(ATENÇÃO: ${c.detalhe ?? ''})`}` : 'Sincronizado.',
   );
+}
+
+/** Muda a data em que o banco começa e o saldo inicial (ex.: primeiro dia completo no FaceID). */
+export function menuInicioBanco(): void {
+  const ui = SpreadsheetApp.getUi();
+  const atual = config();
+  const r = ui.prompt(
+    'Início do banco de horas',
+    `Data em que o banco começa, no formato AAAA-MM-DD (hoje está ${atual.inicioBanco}).`,
+    ui.ButtonSet.OK_CANCEL,
+  );
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const data = r.getResponseText().trim();
+  if (!dataValida(data)) {
+    ui.alert('Data inválida. Use AAAA-MM-DD, por exemplo 2026-10-20.');
+    return;
+  }
+  const s = ui.prompt('Saldo inicial', 'Saldo do banco nesse dia, em minutos (ex.: 0, -90, 45). Use 0 se não souber.', ui.ButtonSet.OK_CANCEL);
+  if (s.getSelectedButton() !== ui.Button.OK) return;
+  const minutos = Number((s.getResponseText().trim() || '0').replace(',', '.'));
+  if (!Number.isFinite(minutos)) {
+    ui.alert('Saldo inválido. Digite só o número de minutos, com sinal de menos se for negativo.');
+    return;
+  }
+  const nova: ConfigCalculo = {
+    ...atual,
+    inicioBanco: data,
+    saldoInicial: Math.round(minutos * 60),
+    jornadas: atual.jornadas.map((j, i) => (i === 0 && j.inicio > data ? { ...j, inicio: data } : j)),
+  };
+  props.gravarConfig(nova);
+  atualizarDias();
+  ui.alert(`Pronto: o banco começa em ${data}, com saldo inicial de ${minutos} min. A aba "Dias" foi recalculada.`);
 }
 
 // Mantém os imports de utilidades usados só em alguns caminhos.
