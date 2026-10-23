@@ -27,7 +27,9 @@ export type EventoNotificacao =
   | { tipo: 'lembrete_entrada' }
   | { tipo: 'dia_incompleto'; quantidade: number }
   | { tipo: 'alerta'; alerta: Alerta }
-  | { tipo: 'pendencias_antigas'; quantidade: number };
+  | { tipo: 'pendencias_antigas'; quantidade: number }
+  /** Recado diário de carinho de quem configurou o app (ex.: o marido). */
+  | { tipo: 'carinho'; de: string };
 
 interface DadosBatida { s: string; nome: string; hora: string; previsao: string }
 interface DadosResumo { s: string; nome: string; dia: string; diaAbs: string; falta: string; banco: string; bancoAbs: string }
@@ -61,6 +63,18 @@ export const MODELOS_VOLTA: Modelo<DadosBatida>[] = [
   ({ hora }) => `De volta às ${hora} ✓`,
   ({ hora }) => `Volta registrada às ${hora} ✓`,
   ({ hora }) => `Anotei sua volta às ${hora} 👍`,
+];
+
+interface DadosCarinho { s: string; nome: string; de: string }
+
+export const MODELOS_CARINHO: Modelo<DadosCarinho>[] = [
+  ({ nome, de }) => `💌 Recado do ${de}: "Eu te amo muito, ${nome}!" ❤️`,
+  ({ de }) => `💌 O ${de} pediu pra eu te lembrar: ele te ama muito! ❤️`,
+  ({ nome, de }) => `❤️ Só passando pra avisar: o ${de} te ama demais, ${nome}!`,
+  ({ de }) => `🥰 Pausa pro carinho: o ${de} mandou dizer que te ama muito!`,
+  ({ nome, de }) => `💌 ${nome}, lembrete importante do dia: o ${de} te ama muito! 🥰`,
+  ({ de }) => `❤️ Mensagem do ${de}: "Você é o amor da minha vida."`,
+  ({ s, nome, de }) => `${s}, ${nome}! O ${de} te ama muito, hoje e todo dia ❤️`,
 ];
 
 export type CenarioResumo =
@@ -205,6 +219,8 @@ export function gerarNotificacao(evento: EventoNotificacao, ctx: ContextoTexto):
       return { titulo: 'Batida faltando?', corpo: `⚠️ Hoje ficaram ${evento.quantidade} batidas. Falta alguma?`, destino: '#/hoje' };
     case 'alerta':
       return { titulo: 'Atenção', corpo: textoAlerta(evento.alerta), destino: 'data' in evento.alerta ? `#/dia/${evento.alerta.data}` : '#/hoje' };
+    case 'carinho':
+      return { titulo: '💌 Recado especial', corpo: escolher(MODELOS_CARINHO, ctx)({ s, nome, de: evento.de }), destino: '#/hoje' };
     case 'pendencias_antigas':
       return {
         titulo: 'Pendências',

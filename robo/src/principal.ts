@@ -5,7 +5,7 @@ import {
 import type { AlertaGravado, Ajuste, BatidaRegistrada, ConfigCalculo, Estado, Papel, Resposta } from '../../motor/src/index';
 import { tratarRequisicao, type DependenciasApi } from './nucleo/api';
 import {
-  avisosDeAlertas, avisosDeBatidas, avisosDePendencias, avisosDoDia, pendenciasAbertas, tagDoEvento, type Aviso, type DadosAviso,
+  avisoDeCarinho, avisosDeAlertas, avisosDeBatidas, avisosDePendencias, avisosDoDia, pendenciasAbertas, tagDoEvento, type Aviso, type DadosAviso,
 } from './nucleo/notificar';
 import * as sessoes from './nucleo/sessoes';
 import { sincronizar, type ModoSincronizacao } from './nucleo/sincronizar';
@@ -100,6 +100,12 @@ function executarSincronizacao(modo: ModoSincronizacao): void {
 
 const URL_APP_DESTINO = (destino: string): string => `${__URL_APP__}${destino}`;
 
+/** Quem manda o recado diário de carinho (vazio = desligado). */
+function recadoDe(): string {
+  const salvo = props.lerTexto('RECADO_DE');
+  return salvo === null ? 'Jéferson' : salvo;
+}
+
 function lerEnviados(): Record<string, string> {
   try {
     return JSON.parse(props.lerTexto('AVISOS_ENVIADOS') ?? '{}') as Record<string, string>;
@@ -122,14 +128,18 @@ function notificar(novasBatidas: BatidaRegistrada[], novosAlertas: AlertaGravado
     ...avisosDeAlertas(novosAlertas),
     ...avisosDePendencias(abertas),
     ...avisosDoDia(d, abertas),
+    ...avisoDeCarinho(d, recadoDe()),
   ];
   const enviados = lerEnviados();
   const limite = agora.momento.data;
   let mudou = false;
   for (const aviso of avisos) {
     if (enviados[aviso.chave]) continue;
-    const n = gerarNotificacao(aviso.evento, { nome: nomeExibicao(), agora: agora.momento.segundos });
-    fcm.enviarParaTodos({ titulo: n.titulo, corpo: n.corpo, link: URL_APP_DESTINO(n.destino), tag: tagDoEvento(aviso.evento) });
+    const carinho = aviso.evento.tipo === 'carinho';
+    // O recado de carinho se reveza dia a dia (não repete o de ontem) e vai só para os aparelhos dela.
+    const sortear = carinho ? (n: number) => segundosEntre({ data: '2026-01-01', segundos: 0 }, agora.momento) / 86400 % n | 0 : undefined;
+    const n = gerarNotificacao(aviso.evento, { nome: nomeExibicao(), agora: agora.momento.segundos, sortear });
+    fcm.enviarParaTodos({ titulo: n.titulo, corpo: n.corpo, link: URL_APP_DESTINO(n.destino), tag: tagDoEvento(aviso.evento) }, carinho ? 'dona' : undefined);
     enviados[aviso.chave] = limite;
     mudou = true;
   }
@@ -281,6 +291,7 @@ export function onOpen(): void {
     .addItem('Sincronizar agora', 'menuSincronizar')
     .addItem('Ajustar início do banco', 'menuInicioBanco')
     .addItem('Configurar notificações (Firebase)', 'menuNotificacoes')
+    .addItem('Recado de amor diário 💌', 'menuRecado')
     .addToUi();
 }
 
@@ -421,6 +432,14 @@ export function menuNotificacoes(): void {
       `<p id="r" style="font-weight:bold"></p></div>`,
   ).setWidth(560).setHeight(360);
   SpreadsheetApp.getUi().showModalDialog(html, 'Notificações — chave do Firebase');
+}
+
+export function menuRecado(): void {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('Recado de amor diário 💌', `Quem manda o recado? Hoje: "${recadoDe() || '(desligado)'}". Deixe em branco para desligar.`, ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  props.gravarTexto('RECADO_DE', r.getResponseText().trim());
+  ui.alert(r.getResponseText().trim() ? `Pronto: todo dia, num horário surpresa entre 10h e 17h, vai um recado de ${r.getResponseText().trim()} ❤️` : 'Recado diário desligado.');
 }
 
 export function salvarContaServico(texto: string): string {

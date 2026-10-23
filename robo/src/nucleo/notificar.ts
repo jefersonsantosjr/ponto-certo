@@ -104,6 +104,29 @@ export function avisosDoDia(d: DadosAviso, pendencias: Pendencia[]): Aviso[] {
   return avisos;
 }
 
+export const INICIO_CARINHO: Segundos = 10 * 3600;
+export const FIM_CARINHO: Segundos = 17 * 3600;
+const FIM_DO_DIA_CARINHO: Segundos = 22 * 3600;
+
+/** Horário-surpresa do recado de carinho: muda todo dia, mas é sempre o mesmo para a mesma data (entre 10:00 e 17:00). */
+export function horaDoCarinho(data: DataISO): Segundos {
+  // FNV-1a de 32 bits: uma letra diferente na data muda o resultado inteiro (um hash fraco repetia o mesmo minuto em dias seguidos).
+  let h = 2166136261;
+  for (const ch of data) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  const minutosNaJanela = (FIM_CARINHO - INICIO_CARINHO) / 60;
+  return INICIO_CARINHO + ((h >>> 0) % minutosNaJanela) * 60;
+}
+
+/** Um recado por dia, a partir do horário-surpresa (até 22h). Sem remetente configurado, não manda. */
+export function avisoDeCarinho(d: Pick<DadosAviso, 'hoje' | 'agora'>, de: string): Aviso[] {
+  if (!de.trim()) return [];
+  if (d.agora < horaDoCarinho(d.hoje) || d.agora >= FIM_DO_DIA_CARINHO) return [];
+  return [{ chave: `carinho|${d.hoje}`, evento: { tipo: 'carinho', de: de.trim() } }];
+}
+
 /** Tag da notificação no celular (agrupa as do mesmo tipo). */
 export function tagDoEvento(e: EventoNotificacao): string {
   switch (e.tipo) {
@@ -118,6 +141,8 @@ export function tagDoEvento(e: EventoNotificacao): string {
       return 'pendencia';
     case 'alerta':
       return 'alerta';
+    case 'carinho':
+      return 'carinho';
     default:
       return 'lembrete';
   }

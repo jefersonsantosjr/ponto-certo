@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { configPadrao, paraSegundos, type BatidaRegistrada, type Pendencia } from '../../motor/src/index';
-import { avisosDeBatidas, avisosDePendencias, avisosDoDia, pendenciasAbertas, tagDoEvento, type DadosAviso } from '../src/nucleo/notificar';
+import { avisoDeCarinho, avisosDeBatidas, avisosDePendencias, avisosDoDia, horaDoCarinho, pendenciasAbertas, tagDoEvento, type DadosAviso } from '../src/nucleo/notificar';
 
 const HOJE = '2026-10-23';
 const CONFIG = configPadrao('2026-10-22');
@@ -71,6 +71,27 @@ describe('avisosDoDia', () => {
     expect(avisosDoDia(dados(['07:59:38'], '12:00:30'), [antiga, deOntem])).toEqual([
       { chave: `pendencias_antigas|${HOJE}`, evento: { tipo: 'pendencias_antigas', quantidade: 1 } },
     ]);
+  });
+});
+
+describe('recado de carinho', () => {
+  it('horário-surpresa entre 10:00 e 17:00, estável para a mesma data e diferente entre dias', () => {
+    const horas = ['2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27'].map(horaDoCarinho);
+    for (const s of horas) {
+      expect(s).toBeGreaterThanOrEqual(paraSegundos('10:00'));
+      expect(s).toBeLessThan(paraSegundos('17:00'));
+      expect(s % 60).toBe(0);
+    }
+    expect(horaDoCarinho('2026-10-23')).toBe(horas[0]);
+    expect(new Set(horas).size).toBeGreaterThan(1);
+  });
+
+  it('manda uma vez por dia, a partir do horário-surpresa e até as 22h', () => {
+    const hora = horaDoCarinho(HOJE);
+    expect(avisoDeCarinho({ hoje: HOJE, agora: hora - 60 }, 'João')).toEqual([]);
+    expect(avisoDeCarinho({ hoje: HOJE, agora: hora }, 'João')).toEqual([{ chave: `carinho|${HOJE}`, evento: { tipo: 'carinho', de: 'João' } }]);
+    expect(avisoDeCarinho({ hoje: HOJE, agora: paraSegundos('22:00') }, 'João')).toEqual([]);
+    expect(avisoDeCarinho({ hoje: HOJE, agora: hora }, '  ')).toEqual([]);
   });
 });
 

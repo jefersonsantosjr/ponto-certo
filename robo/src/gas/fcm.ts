@@ -110,10 +110,11 @@ export function enviarPara(fcmToken: string, payload: PayloadNotificacao): { env
   return { enviada: false, detalhe: `FCM respondeu ${codigo}: ${texto.slice(0, 200)}` };
 }
 
-/** Envia para todos os aparelhos cadastrados; devolve quantos receberam. */
-export function enviarParaTodos(payload: PayloadNotificacao): number {
+/** Envia para todos os aparelhos cadastrados (ou só os de um papel); devolve quantos receberam. */
+export function enviarParaTodos(payload: PayloadNotificacao, somentePapel?: string): number {
   let enviadas = 0;
-  for (const fcmToken of Object.keys(lerAparelhos())) {
+  for (const [fcmToken, aparelho] of Object.entries(lerAparelhos())) {
+    if (somentePapel && aparelho.papel !== somentePapel) continue;
     try {
       if (enviarPara(fcmToken, payload).enviada) enviadas += 1;
     } catch (erro) {

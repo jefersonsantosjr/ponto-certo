@@ -3,7 +3,7 @@ import { calcularDia } from '../src/calculo/dia';
 import { classificarNovaBatida } from '../src/calculo/eventos';
 import { MENOS } from '../src/tempo';
 import {
-  MODELOS_ENTRADA, MODELOS_SAIDA, MODELOS_SAIDA_ALMOCO, MODELOS_VOLTA, MODELOS_VOLTA_COM_PREVISAO,
+  MODELOS_CARINHO, MODELOS_ENTRADA, MODELOS_SAIDA, MODELOS_SAIDA_ALMOCO, MODELOS_VOLTA, MODELOS_VOLTA_COM_PREVISAO,
   RESUMO, gerarNotificacao, saudacao,
 } from '../src/textos/notificacoes';
 import { batida, h } from './ajuda';
@@ -92,6 +92,22 @@ describe('gerarNotificacao: pendências e alertas', () => {
   it('pendências antigas no singular e no plural', () => {
     expect(gerarNotificacao({ tipo: 'pendencias_antigas', quantidade: 1 }, ctx('12:00')).corpo).toBe('Ainda tem 1 resposta esperando por você 🙏');
     expect(gerarNotificacao({ tipo: 'pendencias_antigas', quantidade: 3 }, ctx('12:00')).corpo).toBe('Ainda tem 3 respostas esperando por você 🙏');
+  });
+});
+
+describe('gerarNotificacao: recado de carinho', () => {
+  it('tem várias versões, todas com quem manda e o título de recado especial', () => {
+    expect(MODELOS_CARINHO.length).toBeGreaterThanOrEqual(5);
+    MODELOS_CARINHO.forEach((_, i) => {
+      const n = gerarNotificacao({ tipo: 'carinho', de: 'João' }, { nome: 'Maria', agora: h('14:00'), sortear: () => i });
+      expect(n.titulo).toBe('💌 Recado especial');
+      expect(n.corpo).toContain('João');
+      expect(n.destino).toBe('#/hoje');
+    });
+  });
+
+  it('a primeira versão leva o nome dela', () => {
+    expect(gerarNotificacao({ tipo: 'carinho', de: 'João' }, ctx('10:30')).corpo).toBe('💌 Recado do João: "Eu te amo muito, Maria!" ❤️');
   });
 });
 
