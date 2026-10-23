@@ -12,3 +12,5 @@ export * from './calculo/manuais';
 export * from './calculo/previsao';
 export * from './calculo/banco';
 export * from './conferencia';
+export * from './calculo/eventos';
+export * from './textos/notificacoes';
