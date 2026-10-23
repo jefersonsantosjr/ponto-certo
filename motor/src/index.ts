@@ -7,3 +7,8 @@ export * from './leitor/classificar';
 export * from './calculo/jornada';
 export * from './calculo/intervalos';
 export * from './calculo/dia';
+export * from './calculo/respostas';
+export * from './calculo/manuais';
+export * from './calculo/previsao';
+export * from './calculo/banco';
+export * from './conferencia';
