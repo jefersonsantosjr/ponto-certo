@@ -17,6 +17,12 @@ import { agoraLocal, momentoDeTexto, segundosDesde } from './gas/tempoLocal';
 
 declare const __URL_ROBO__: string;
 declare const __URL_APP__: string;
+/** Só preenchido num build de instalação; grava a conta do Firebase nas Propriedades e some no build seguinte. */
+declare const __FCM_CONTA_EMBUTIDA__: string;
+
+function instalarContaEmbutida(): void {
+  if (__FCM_CONTA_EMBUTIDA__ && !fcm.servidorPronto()) console.log(fcm.salvarConta(__FCM_CONTA_EMBUTIDA__));
+}
 
 const INICIO_EXPEDIENTE = 6 * 3600 + 30 * 60;
 const FIM_EXPEDIENTE = 21 * 3600 + 30 * 60;
@@ -251,7 +257,8 @@ const dependencias: DependenciasApi = {
 // ---------------------------------------------------------------- funções chamadas pelo Google
 
 export function doGet(): GoogleAppsScript.Content.TextOutput {
-  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso });
+  instalarContaEmbutida();
+  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos() } });
 }
 
 export function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
@@ -307,6 +314,7 @@ export function configurar(): void {
 }
 
 export function tick(): void {
+  instalarContaEmbutida();
   const agora = agoraLocal().momento.segundos;
   const completa = Math.floor(agora / 60) % 15 === 0;
   const noExpediente = agora >= INICIO_EXPEDIENTE && agora <= FIM_EXPEDIENTE;

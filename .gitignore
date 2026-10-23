@@ -14,3 +14,5 @@ robo/dist/
 robo/.implantacao.json
 .claude/
 .validacao/
+*firebase-adminsdk*.json
+*conta-servico*.json
