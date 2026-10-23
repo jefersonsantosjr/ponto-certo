@@ -13,3 +13,4 @@ Thumbs.db
 robo/dist/
 robo/.implantacao.json
 .claude/
+.validacao/
