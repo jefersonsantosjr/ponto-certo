@@ -103,7 +103,7 @@ const URL_APP_DESTINO = (destino: string): string => `${__URL_APP__}${destino}`;
 /** Quem manda o recado diário de carinho (vazio = desligado). */
 function recadoDe(): string {
   const salvo = props.lerTexto('RECADO_DE');
-  return salvo === null ? 'Jéferson' : salvo;
+  return salvo === null ? 'seu marido' : salvo;
 }
 
 function lerEnviados(): Record<string, string> {
@@ -436,7 +436,7 @@ export function menuNotificacoes(): void {
 
 export function menuRecado(): void {
   const ui = SpreadsheetApp.getUi();
-  const r = ui.prompt('Recado de amor diário 💌', `Quem manda o recado? Hoje: "${recadoDe() || '(desligado)'}". Deixe em branco para desligar.`, ui.ButtonSet.OK_CANCEL);
+  const r = ui.prompt('Recado de amor diário 💌', `Quem manda o recado (ex.: seu marido)? Hoje: "${recadoDe() || '(desligado)'}". Deixe em branco para desligar.`, ui.ButtonSet.OK_CANCEL);
   if (r.getSelectedButton() !== ui.Button.OK) return;
   props.gravarTexto('RECADO_DE', r.getResponseText().trim());
   ui.alert(r.getResponseText().trim() ? `Pronto: todo dia, num horário surpresa entre 10h e 17h, vai um recado de ${r.getResponseText().trim()} ❤️` : 'Recado diário desligado.');

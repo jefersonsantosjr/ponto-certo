@@ -106,8 +106,9 @@ describe('gerarNotificacao: recado de carinho', () => {
     });
   });
 
-  it('a primeira versão leva o nome dela', () => {
-    expect(gerarNotificacao({ tipo: 'carinho', de: 'João' }, ctx('10:30')).corpo).toBe('💌 Recado do João: "Eu te amo muito, Maria!" ❤️');
+  it('chama ela de "amor" e vem do "seu marido"', () => {
+    expect(gerarNotificacao({ tipo: 'carinho', de: 'seu marido' }, ctx('10:30')).corpo).toBe('💌 Recado do seu marido: "Eu te amo muito, amor!" ❤️');
+    for (const modelo of MODELOS_CARINHO) expect(modelo({ s: 'Bom dia', nome: 'Maria', de: 'seu marido' })).not.toContain('Maria');
   });
 });
 

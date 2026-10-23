@@ -67,14 +67,15 @@ export const MODELOS_VOLTA: Modelo<DadosBatida>[] = [
 
 interface DadosCarinho { s: string; nome: string; de: string }
 
+// O recado chama ela de "amor" (pedido do marido); `de` é quem manda, ex.: "seu marido".
 export const MODELOS_CARINHO: Modelo<DadosCarinho>[] = [
-  ({ nome, de }) => `💌 Recado do ${de}: "Eu te amo muito, ${nome}!" ❤️`,
+  ({ de }) => `💌 Recado do ${de}: "Eu te amo muito, amor!" ❤️`,
   ({ de }) => `💌 O ${de} pediu pra eu te lembrar: ele te ama muito! ❤️`,
-  ({ nome, de }) => `❤️ Só passando pra avisar: o ${de} te ama demais, ${nome}!`,
+  ({ de }) => `❤️ Só passando pra avisar: o ${de} te ama demais, amor!`,
   ({ de }) => `🥰 Pausa pro carinho: o ${de} mandou dizer que te ama muito!`,
-  ({ nome, de }) => `💌 ${nome}, lembrete importante do dia: o ${de} te ama muito! 🥰`,
+  ({ de }) => `💌 Amor, lembrete importante do dia: o ${de} te ama muito! 🥰`,
   ({ de }) => `❤️ Mensagem do ${de}: "Você é o amor da minha vida."`,
-  ({ s, nome, de }) => `${s}, ${nome}! O ${de} te ama muito, hoje e todo dia ❤️`,
+  ({ s, de }) => `${s}, amor! O ${de} te ama muito, hoje e todo dia ❤️`,
 ];
 
 export type CenarioResumo =
