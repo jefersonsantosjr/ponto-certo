@@ -1,6 +1,7 @@
 import { dataBR, formatarDuracao, formatarHoraCurta, formatarSaldo, jornadaVigente } from '@ponto-certo/motor';
 import { Avisos } from '../componentes/Avisos';
 import { IconeVoltar } from '../componentes/Icones';
+import { SecaoNotificacoes } from '../componentes/SecaoNotificacoes';
 import { quandoCurto } from '../dados/formatos';
 import { avaliarSaude } from '../dados/saude';
 import { MODO_EXEMPLO, useApp } from '../estado/contexto';
@@ -66,6 +67,8 @@ export function Config() {
         <div class="item"><span>{estado.usuario.nome}</span><b>{estado.usuario.papel === 'dona' ? 'dona' : 'só leitura'}</b></div>
         {MODO_EXEMPLO && <div class="item"><span>Modo</span><b>demonstração (dados falsos)</b></div>}
       </div>
+
+      <SecaoNotificacoes />
 
       <div class="secao">Saúde do robô</div>
       <div class="cartao lista">

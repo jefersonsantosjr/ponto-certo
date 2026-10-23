@@ -1,7 +1,8 @@
 // Cliente de demonstração: guarda tudo em memória, sem robô (npm run dev:mock).
-import { formatarHora, paraSegundos } from '@ponto-certo/motor';
+import { formatarHora, gerarNotificacao, paraSegundos } from '@ponto-certo/motor';
 import type { Estado } from '@ponto-certo/motor';
 import { relogioDe } from '../dados/datas';
+import { mostrarNotificacaoLocal } from '../notificacoes/push';
 import type { ClienteApi } from './cliente';
 import { estadoDeExemplo } from './exemplo';
 import type { SessaoLocal } from './sessao';
@@ -11,7 +12,7 @@ export const SESSAO_DE_EXEMPLO: SessaoLocal = { urlRobo: 'mock', token: 'mock', 
 const espera = () => new Promise((ok) => setTimeout(ok, 350));
 
 export function clienteDeExemplo(): ClienteApi {
-  let estado: Estado = estadoDeExemplo(relogioDe(new Date()));
+  let estado: Estado = { ...estadoDeExemplo(relogioDe(new Date())), notificacoes: { servidorPronto: true, aparelhos: 0 } };
   let contador = 0;
   const agoraTexto = () => {
     const r = relogioDe(new Date());
@@ -57,6 +58,17 @@ export function clienteDeExemplo(): ClienteApi {
     marcarAlertasLidos: async (ids) => {
       await espera();
       atualizar((e) => ({ ...e, alertas: e.alertas.map((a) => (ids.includes(a.id) ? { ...a, lido: true } : a)) }));
+    },
+    registrarDispositivo: async () => {
+      await espera();
+      return atualizar((e) => ({ ...e, notificacoes: { servidorPronto: true, aparelhos: e.notificacoes.aparelhos + 1 } }));
+    },
+    testarNotificacao: async () => {
+      await espera();
+      const r = relogioDe(new Date());
+      const n = gerarNotificacao({ tipo: 'entrada', segundos: r.agora }, { nome: 'Maria', agora: r.agora });
+      await mostrarNotificacaoLocal(n.titulo, n.corpo);
+      return { enviada: true, detalhe: 'Demonstração: notificação local, sem robô.' };
     },
     sair: async () => {
       await espera();

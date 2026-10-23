@@ -15,6 +15,12 @@ export const ERROS_DE_SESSAO = new Set(['sessao_invalida', 'sessao_expirada', 'n
 
 export type NovoAjuste = Pick<Ajuste, 'data' | 'tipo' | 'segundos' | 'justificativa'>;
 
+/** Resultado da notificação de teste mandada pelo robô. */
+export interface ResultadoTeste {
+  enviada: boolean;
+  detalhe: string;
+}
+
 export interface ClienteApi {
   estado(): Promise<Estado>;
   sincronizar(): Promise<Estado>;
@@ -22,6 +28,8 @@ export interface ClienteApi {
   batidaManual(data: DataISO, hora: string, justificativa: string): Promise<Estado>;
   ajustar(ajuste: NovoAjuste): Promise<Estado>;
   marcarAlertasLidos(ids: string[]): Promise<void>;
+  registrarDispositivo(fcmToken: string, aparelho: string): Promise<Estado>;
+  testarNotificacao(fcmToken: string): Promise<ResultadoTeste>;
   sair(): Promise<void>;
 }
 
@@ -64,6 +72,8 @@ export function clienteReal(sessao: SessaoLocal): ClienteApi {
     marcarAlertasLidos: async (ids) => {
       await chamar<unknown>(urlRobo, { acao: 'marcarAlertasLidos', token, ids });
     },
+    registrarDispositivo: (fcmToken, aparelho) => chamar<Estado>(urlRobo, { acao: 'registrarDispositivo', token, fcmToken, aparelho }),
+    testarNotificacao: (fcmToken) => chamar<ResultadoTeste>(urlRobo, { acao: 'testarNotificacao', token, fcmToken }),
     sair: async () => {
       await chamar<unknown>(urlRobo, { acao: 'sair', token });
     },

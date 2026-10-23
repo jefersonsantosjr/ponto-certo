@@ -12,4 +12,15 @@ if (import.meta.env.PROD && import.meta.env.MODE !== 'mock' && 'serviceWorker' i
       // Sem service worker o app funciona normalmente, só não abre offline.
     });
   });
+  // Toque numa notificação com o app já aberto: o service worker pede para ir à tela certa.
+  navigator.serviceWorker.addEventListener('message', (evento: MessageEvent) => {
+    const dados = evento.data as { tipo?: string; link?: string } | null;
+    if (dados?.tipo !== 'navegar' || typeof dados.link !== 'string') return;
+    try {
+      const destino = new URL(dados.link);
+      if (destino.origin === location.origin && destino.hash) location.hash = destino.hash;
+    } catch {
+      // link inválido: fica onde está
+    }
+  });
 }
