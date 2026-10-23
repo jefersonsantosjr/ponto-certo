@@ -10,8 +10,10 @@ const arquivos = process.argv.includes('--staged')
   : listar(['ls-files', '--cached', '--others', '--exclude-standard']);
 
 const BINARIOS = /\.(png|jpe?g|gif|ico|webp|woff2?|ttf|pdf|zip|xlsx)$/i;
+// Gerado pelo npm com metadados de bibliotecas de terceiros (autores, avisos), não com dados nossos.
+const GERADOS = /(^|\/)package-lock\.json$/;
 const achados = arquivos
-  .filter((arquivo) => !BINARIOS.test(arquivo) && existsSync(arquivo))
+  .filter((arquivo) => !BINARIOS.test(arquivo) && !GERADOS.test(arquivo) && existsSync(arquivo))
   .flatMap((arquivo) => procurarDadosPessoais(arquivo, readFileSync(arquivo, 'utf8')));
 
 if (achados.length > 0) {
