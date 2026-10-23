@@ -1,0 +1,14 @@
+{
+  "name": "@ponto-certo/robo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@google/clasp": "^3.4.1",
+    "@types/google-apps-script": "^2.0.13",
+    "esbuild": "^0.28.2"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}
