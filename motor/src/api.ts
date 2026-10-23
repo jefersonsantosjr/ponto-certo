@@ -74,6 +74,27 @@ export interface Saude {
   problemas: string[];
 }
 
+/** Situação das notificações no robô. */
+export interface SituacaoNotificacoes {
+  /** O robô tem a credencial do Firebase e consegue enviar. */
+  servidorPronto: boolean;
+  /** Quantos aparelhos estão cadastrados para receber. */
+  aparelhos: number;
+}
+
+/**
+ * Conteúdo de cada push (FCM "data message", só texto). O service worker do app monta a notificação:
+ * título, corpo, ícone do app e, ao tocar, abre `link`.
+ */
+export interface PayloadNotificacao {
+  titulo: string;
+  corpo: string;
+  /** URL completa do app com a rota (ex.: https://…/ponto-certo/#/pendencias). */
+  link: string;
+  /** Agrupa notificações do mesmo tipo (ex.: 'batida', 'resumo', 'pendencia', 'alerta', 'teste'). */
+  tag: string;
+}
+
 export interface Estado {
   geradoEm: string;
   hoje: DataISO;
@@ -90,6 +111,7 @@ export interface Estado {
   ajustes: AjusteGravado[];
   alertas: AlertaGravado[];
   saude: Saude;
+  notificacoes: SituacaoNotificacoes;
 }
 
 export interface Sessao {
@@ -106,7 +128,12 @@ export type Requisicao =
   | { acao: 'batidaManual'; token: string; data: DataISO; hora: string; justificativa: string }
   | { acao: 'ajustar'; token: string; ajuste: Pick<Ajuste, 'data' | 'tipo' | 'segundos' | 'justificativa'> }
   | { acao: 'marcarAlertasLidos'; token: string; ids: string[] }
+  | { acao: 'registrarDispositivo'; token: string; fcmToken: string; aparelho: string }
+  | { acao: 'testarNotificacao'; token: string; fcmToken: string }
   | { acao: 'sair'; token: string };
 
-/** Envelope de toda resposta do robô. 'ativar' devolve Sessao; 'estado', 'sincronizar', 'responder', 'batidaManual' e 'ajustar' devolvem Estado. */
+/**
+ * Envelope de toda resposta do robô. 'ativar' devolve Sessao; 'estado', 'sincronizar', 'responder', 'batidaManual',
+ * 'ajustar' e 'registrarDispositivo' devolvem Estado; 'testarNotificacao' devolve { enviada: boolean; detalhe: string }.
+ */
 export type RespostaApi<T> = { ok: true; dados: T } | { ok: false; erro: string; mensagem: string };

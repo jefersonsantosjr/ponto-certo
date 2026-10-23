@@ -31,6 +31,7 @@ export function estadoDeTeste(dias: Record<DataISO, string[]>, config: ConfigCal
     hoje: '2026-10-23',
     agora: paraSegundos('15:42:00'),
     usuario: { nome: 'Maria', papel: 'dona' },
+    notificacoes: { servidorPronto: false, aparelhos: 0 },
     nomeExibicao: 'Maria',
     identidade: { cpfMascarado: '***.456.789-**', nome: 'MARIA EXEMPLO DA SILVA', cnpj: '11.111.111/0001-00' },
     config,

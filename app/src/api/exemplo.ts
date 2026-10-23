@@ -89,6 +89,7 @@ export function estadoDeExemplo(relogio: Relogio): Estado {
     hoje,
     agora,
     usuario: { nome: 'Maria', papel: 'dona' },
+    notificacoes: { servidorPronto: false, aparelhos: 0 },
     nomeExibicao: 'Maria',
     identidade: { cpfMascarado: '***.456.789-**', nome: 'MARIA EXEMPLO DA SILVA', cnpj: '11.111.111/0001-00' },
     config,
