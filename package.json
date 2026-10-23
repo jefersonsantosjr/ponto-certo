@@ -2,7 +2,9 @@
   "name": "ponto-certo",
   "private": true,
   "type": "module",
-  "workspaces": ["motor"],
+  "workspaces": [
+    "motor"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -11,7 +13,9 @@
     "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^24.0.0",
+    "mailparser": "^3.12.4",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.0"
