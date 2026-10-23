@@ -4,12 +4,13 @@
   "type": "module",
   "workspaces": [
     "motor",
-    "robo"
+    "robo",
+    "app"
   ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p motor/tsconfig.json && tsc -p motor/tsconfig.src.json && tsc -p scripts/tsconfig.json && tsc -p robo/tsconfig.json",
+    "typecheck": "tsc -p motor/tsconfig.json && tsc -p motor/tsconfig.src.json && tsc -p scripts/tsconfig.json && tsc -p robo/tsconfig.json && tsc -p app/tsconfig.json",
     "verificar:dados": "tsx scripts/verificar-dados-pessoais.ts",
     "prepare": "git config core.hooksPath .githooks"
   },

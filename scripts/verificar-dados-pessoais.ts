@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { procurarDadosPessoais } from './dados-pessoais';
 
 const listar = (args: string[]): string[] =>
@@ -13,7 +13,7 @@ const BINARIOS = /\.(png|jpe?g|gif|ico|webp|woff2?|ttf|pdf|zip|xlsx)$/i;
 // Gerado pelo npm com metadados de bibliotecas de terceiros (autores, avisos), não com dados nossos.
 const GERADOS = /(^|\/)package-lock\.json$/;
 const achados = arquivos
-  .filter((arquivo) => !BINARIOS.test(arquivo) && !GERADOS.test(arquivo) && existsSync(arquivo))
+  .filter((arquivo) => !BINARIOS.test(arquivo) && !GERADOS.test(arquivo) && existsSync(arquivo) && statSync(arquivo).isFile())
   .flatMap((arquivo) => procurarDadosPessoais(arquivo, readFileSync(arquivo, 'utf8')));
 
 if (achados.length > 0) {
