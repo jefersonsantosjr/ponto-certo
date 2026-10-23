@@ -48,7 +48,8 @@ describe('gerarExcel', () => {
     expect(lida.worksheets.map((w) => w.name)).toEqual([...ABAS]);
     const dias = lida.getWorksheet('Dias');
     expect(dias?.getRow(6).getCell(14).value).toBe(1920);
-  });
+    // O ExcelJS de verdade leva ~2s; com a máquina ocupada passava dos 5s padrão e falhava sem bug.
+  }, 30_000);
 });
 
 describe('períodos do Caderninho', () => {
