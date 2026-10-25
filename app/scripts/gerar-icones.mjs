@@ -97,9 +97,44 @@ function desenhar(tamanho, { maskable }) {
   return png(tamanho, tamanho, rgba);
 }
 
+/**
+ * Selo da notificação (o ícone pequeno da barra do Android): o Android usa só a transparência da imagem
+ * e pinta tudo de branco. Por isso é só o relógio, branco, sobre fundo transparente — com o ícone colorido,
+ * aparecia um quadrado branco. Traços mais grossos para ficar nítido em 24dp.
+ */
+function desenharSelo(tamanho) {
+  const rgba = Buffer.alloc(tamanho * tamanho * 4);
+  const amostras = 4;
+  const escala = 1.2;
+  for (let y = 0; y < tamanho; y++) {
+    for (let x = 0; x < tamanho; x++) {
+      let cobertos = 0;
+      for (let sy = 0; sy < amostras; sy++) {
+        for (let sx = 0; sx < amostras; sx++) {
+          const cx = ((x + (sx + 0.5) / amostras) / tamanho - 0.5) / escala;
+          const cy = ((y + (sy + 0.5) / amostras) / tamanho - 0.5) / escala;
+          const d = Math.hypot(cx, cy);
+          const anel = d >= 0.29 && d <= 0.39;
+          const ponteiroHora = distSegmento(cx, cy, 0, 0, 0, -0.18) <= 0.045;
+          const ponteiroMin = distSegmento(cx, cy, 0, 0, 0.16, 0.08) <= 0.045;
+          const centro = d <= 0.065;
+          if (anel || ponteiroHora || ponteiroMin || centro) cobertos += 1;
+        }
+      }
+      const i = (y * tamanho + x) * 4;
+      rgba[i] = 255;
+      rgba[i + 1] = 255;
+      rgba[i + 2] = 255;
+      rgba[i + 3] = Math.round((cobertos / (amostras * amostras)) * 255);
+    }
+  }
+  return png(tamanho, tamanho, rgba);
+}
+
 const pasta = new URL('../public/icones/', import.meta.url);
 mkdirSync(pasta, { recursive: true });
 writeFileSync(new URL('icone-192.png', pasta), desenhar(192, { maskable: false }));
 writeFileSync(new URL('icone-512.png', pasta), desenhar(512, { maskable: false }));
 writeFileSync(new URL('icone-maskable-512.png', pasta), desenhar(512, { maskable: true }));
+writeFileSync(new URL('selo-96.png', pasta), desenharSelo(96));
 console.log('Ícones gerados em app/public/icones/');

@@ -3,8 +3,8 @@
 // Nunca guarda as chamadas ao robô (outro domínio): os dados ficam no cache do próprio app.
 importScripts('./notificacao-payload.js');
 
-const CACHE = 'ponto-certo-v2';
-const BASICOS = ['./', './index.html', './manifest.webmanifest', './icones/icone-192.png', './notificacao-payload.js'];
+const CACHE = 'ponto-certo-v3';
+const BASICOS = ['./', './index.html', './manifest.webmanifest', './icones/icone-192.png', './icones/selo-96.png', './notificacao-payload.js'];
 
 self.addEventListener('install', (evento) => {
   self.skipWaiting();
@@ -69,7 +69,8 @@ self.addEventListener('push', (evento) => {
     self.registration.showNotification(aviso.titulo, {
       body: aviso.corpo,
       icon: escopo + 'icones/icone-192.png',
-      badge: escopo + 'icones/icone-192.png',
+      // Ícone pequeno da barra: o Android pinta de branco tudo que não é transparente, por isso o selo (só o relógio).
+      badge: escopo + 'icones/selo-96.png',
       tag: aviso.tag,
       renotify: true,
       data: { link: aviso.link },
