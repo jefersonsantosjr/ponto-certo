@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configPadrao, infoDia } from '../src/calculo/jornada';
+import { configPadrao, infoDia, migrarConfig } from '../src/calculo/jornada';
 import type { VersaoJornada } from '../src/tipos';
 
 const cfg = configPadrao('2026-09-01');
@@ -10,7 +10,7 @@ describe('jornada', () => {
       inicio: '2026-09-01', almocoPadrao: 4320, janelaAlmoco: { inicio: 43200, fim: 54000 },
       cargaPorDiaSemana: [0, 31680, 31680, 31680, 31680, 31680, 0],
     });
-    expect(cfg.regras).toEqual({ toleranciaLigada: true, tolerancia: 600, limiteDuplicada: 300, minimoParaDescontarAlmoco: 21600 });
+    expect(cfg.regras).toEqual({ toleranciaLigada: true, toleranciaMarcacao: 300, tolerancia: 600, limiteDuplicada: 300, minimoParaDescontarAlmoco: 21600 });
     expect(cfg.saldoInicial).toBe(0);
     expect(cfg.inicioBanco).toBe('2026-09-01');
   });
@@ -33,5 +33,20 @@ describe('jornada', () => {
 
   it('antes da primeira versão não há jornada', () => {
     expect(infoDia('2026-08-31', cfg)).toMatchObject({ jornada: null, carga: 0, diaUtil: false });
+  });
+
+  it('migrarConfig completa a config salva antes da tolerância por batida (08:00–18:00, 5min)', () => {
+    const { entrada: _e, saida: _s, ...semHorario } = cfg.jornadas[0];
+    const { toleranciaMarcacao: _t, ...regrasAntigas } = cfg.regras;
+    const antiga = { ...cfg, saldoInicial: -60, jornadas: [semHorario], regras: regrasAntigas };
+    expect(migrarConfig(antiga)).toEqual({ ...cfg, saldoInicial: -60 });
+    expect(migrarConfig(cfg)).toBe(cfg);
+  });
+
+  it('migrarConfig não inventa horário para uma jornada diferente da padrão', () => {
+    const { entrada: _e, saida: _s, ...semHorario } = cfg.jornadas[0];
+    const oito: VersaoJornada = { ...semHorario, cargaPorDiaSemana: [0, 28800, 28800, 28800, 28800, 28800, 0] };
+    const migrada = migrarConfig({ ...cfg, jornadas: [oito] });
+    expect(migrada.jornadas[0]).toEqual(oito);
   });
 });

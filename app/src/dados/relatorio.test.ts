@@ -15,19 +15,21 @@ describe('montarRelatorio', () => {
     expect(r.dias.linhas).toHaveLength(4);
     const terca = r.dias.linhas[1];
     expect(terca.slice(0, 8)).toEqual(['20/10/2026', 'ter', '07:56:00', '10:00:00', '10:50:00', '12:10:00', '13:22:00', '18:21:00']);
-    expect(terca[12]).toBe('−0:25:00');
-    expect(terca[13]).toBe(-1500);
+    expect(terca[12]).toBe('−0:29:00');
+    expect(terca[13]).toBe(-1740);
     expect(String(terca[15])).toContain('Saída 10:00:00–10:50:00 PENDENTE');
     expect(String(terca[15])).toContain('Batida 07:57:00 duplicada (ignorada)');
+    expect(String(terca[15])).toContain('Tolerância da CLT: entrada 07:56:00 (4min antes) não conta');
     expect(r.dias.pendentes).toEqual([false, true, false, false]);
   });
 
   it('o total bate com o cálculo do período', () => {
-    expect(r.periodo.resumo.saldo).toBe(1920);
-    expect(r.dias.total[12]).toBe('+0:32:00');
-    expect(r.dias.total[13]).toBe(1920);
-    expect(r.dias.total[14]).toBe('−1:33:00');
+    expect(r.periodo.resumo.saldo).toBe(1620);
+    expect(r.dias.total[12]).toBe('+0:27:00');
+    expect(r.dias.total[13]).toBe(1620);
+    expect(r.dias.total[14]).toBe('−1:38:00');
     expect(r.resumo).toContainEqual(['Banco no início', '−2:05:00']);
+    expect(r.resumo).toContainEqual(['Observação', expect.stringContaining('Tolerância da CLT: até 5min na entrada (08:00) e na saída (18:00); passou disso, conta tudo; o almoço conta exato.')]);
   });
 
   it('lista todos os comprovantes do período com NSR e situação', () => {
@@ -47,7 +49,7 @@ describe('gerarExcel', () => {
     await lida.xlsx.load(dados);
     expect(lida.worksheets.map((w) => w.name)).toEqual([...ABAS]);
     const dias = lida.getWorksheet('Dias');
-    expect(dias?.getRow(6).getCell(14).value).toBe(1920);
+    expect(dias?.getRow(6).getCell(14).value).toBe(1620);
     // O ExcelJS de verdade leva ~2s; com a máquina ocupada passava dos 5s padrão e falhava sem bug.
   }, 30_000);
 });

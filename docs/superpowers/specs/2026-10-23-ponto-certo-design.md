@@ -181,7 +181,8 @@ Versão inicial, que vale desde o início do banco:
 | Item | Valor |
 |---|---|
 | Dias | segunda a sexta |
-| Carga diária | 8h48 (horário de referência 08:00–18:00) |
+| Carga diária | 8h48 |
+| Horário de referência | entrada 08:00, saída 18:00 (usado na tolerância, passo 9 de 6.4) |
 | Almoço padrão | 1h12 |
 | Horário de saída para o almoço | entre 12:00 e 15:00 |
 | Sábado e domingo | carga 0 |
@@ -205,7 +206,13 @@ Versão inicial, que vale desde o início do banco:
 6. **Trabalhado** = soma dos pares + saídas abonadas + abonos manuais do dia − almoço descontado (passo 5).
 7. **Carga do dia:** a da jornada vigente. É 0 em fim de semana e feriado, e também quando o dia foi classificado como atestado, abonado, férias ou feriado.
 8. **Saldo bruto** = trabalhado − carga.
-9. **Tolerância da CLT (art. 58 §1º)**, ligada por padrão: se o saldo bruto ficar entre −10 min e +10 min (±600 s, inclusive), o saldo é 0. Fora disso, conta o saldo inteiro.
+9. **Tolerância da CLT (art. 58 §1º e Súmula 366 do TST)**, ligada por padrão, **por batida** (regra informada pelo RH em 26/10/2026):
+   - a **entrada** (primeira batida) é comparada com 08:00, e a **saída** (última batida, se a quantidade for par) com 18:00;
+   - diferença de até **5 min (300 s, inclusive)**, para mais ou para menos, não conta: o saldo = saldo bruto − essas diferenças;
+   - a partir de 5min01s, **conta a diferença inteira** (7 min de atraso descontam 7 min; chegar 8 min antes conta +8 min);
+   - o **almoço não tem tolerância**: conta pela duração exata;
+   - a tela do dia e a planilha dizem quais batidas a tolerância segurou (ex.: "entrada 07:56:00 (4min antes) não conta");
+   - configs gravadas antes disso, sem horário de referência, são completadas automaticamente pelo robô; uma jornada sem horário de referência usa a regra antiga (±10 min no total do dia).
 10. **Dia útil sem nenhuma batida:** saldo = −carga, e abre a pendência "folga, atestado, férias ou feriado?". Enquanto não houver resposta, conta como **folga do banco**.
 
 ### 6.5 Dia em andamento e previsão de saída
@@ -227,12 +234,13 @@ Versão inicial, que vale desde o início do banco:
 Terça, 20/10. Batidas (todas com segundos :00): 07:56, 07:57, 10:00, 10:50, 12:10, 13:22, 18:21.
 
 - 07:57 está a 1 min de 07:56, então é duplicada e não conta.
+- A entrada 07:56 está 4 min antes das 08:00, dentro da tolerância: esses 4 min não contam. A saída 18:21 passou 21 min, então conta inteira.
 - Pares: 07:56–10:00 (2h04), 10:50–12:10 (1h20), 13:22–18:21 (4h59). Trabalhado = 8h23.
 - Intervalos:
   - 12:10–13:22 começa no horário de almoço e dura 1h12, então é o almoço;
   - 10:00–10:50 é uma saída intermediária de 50 min e abre a pendência de abono.
-- **Sem abono:** 8h23 − 8h48 = **−25 min**.
-- **Com abono:** 8h23 + 50 min − 8h48 = **+25 min**.
+- **Sem abono:** 8h23 − 8h48 − 4 min (tolerância) = **−29 min**.
+- **Com abono:** 8h23 + 50 min − 8h48 − 4 min (tolerância) = **+21 min**.
 
 ## 7. Pendências, respostas e justificativas
 
@@ -450,7 +458,7 @@ ponto-certo/
   - dia útil sem batida e cada uma das respostas possíveis;
   - feriado fixo, Sexta-feira Santa (03/04/2026) e feriado local;
   - trabalho no fim de semana;
-  - tolerância no limite (±10min00s zera, ±10min01s conta);
+  - tolerância por batida no limite, na entrada e na saída, antes e depois (5min00s não conta, 5min01s conta inteira), almoço exato e a regra antiga para config sem horário de referência;
   - banco passando de um mês para outro;
   - ajuste manual;
   - mudança de versão da jornada;

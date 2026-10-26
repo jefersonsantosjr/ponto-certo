@@ -1,6 +1,6 @@
 import {
   calcularPeriodo, configPadrao, formatarHora, formatarHorasPlanilha, formatarSaldoPlanilha, gerarNotificacao, manuaisSubstituidas,
-  NOMES_DIAS, dataValida, diaDaSemana, respostasVigentes, segundosEntre,
+  migrarConfig, NOMES_DIAS, dataValida, diaDaSemana, respostasVigentes, segundosEntre,
 } from '../../motor/src/index';
 import type { AlertaGravado, Ajuste, BatidaRegistrada, ConfigCalculo, Estado, Papel, Resposta } from '../../motor/src/index';
 import { tratarRequisicao, type DependenciasApi } from './nucleo/api';
@@ -70,12 +70,22 @@ function nomeExibicao(): string {
 /** Config de cálculo; na primeira vez, o banco começa na data do primeiro comprovante, com saldo zero. */
 function config(): ConfigCalculo {
   const salva = props.lerConfig();
-  if (salva) return salva;
+  if (salva) return migrarConfig(salva);
   const datas = planilha.lerBatidas().filter((b) => b.origem !== 'manual').map((b) => b.data).sort();
   const inicio = datas[0] ?? agoraLocal().momento.data;
   const nova = configPadrao(inicio);
   props.gravarConfig(nova);
   return nova;
+}
+
+/** Grava a config completada por migrarConfig (ex.: tolerância por batida) e recalcula a aba "Dias"; só muda uma vez. */
+function migrarConfigSalva(): void {
+  const salva = props.lerConfig();
+  if (!salva) return;
+  const migrada = migrarConfig(salva);
+  if (migrada === salva) return;
+  props.gravarConfig(migrada);
+  atualizarDias();
 }
 
 function urlRobo(): string {
@@ -86,6 +96,7 @@ function urlRobo(): string {
 
 function executarSincronizacao(modo: ModoSincronizacao): void {
   comTrava(() => {
+    migrarConfigSalva();
     const agora = agoraLocal();
     const r = sincronizar(
       gmailReal,

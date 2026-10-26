@@ -1,6 +1,6 @@
 import {
-  calcularPeriodo, chaveResposta, dataBR, formatarDuracao, formatarHora, formatarHorasPlanilha, formatarSaldo,
-  formatarSaldoPlanilha, NOMES_DIAS, diaDaSemana,
+  calcularPeriodo, chaveResposta, dataBR, descreverRegraTolerancia, descreverToleranciaDoDia, formatarDuracao, formatarHora,
+  formatarHorasPlanilha, formatarSaldo, formatarSaldoPlanilha, NOMES_DIAS, diaDaSemana,
 } from '@ponto-certo/motor';
 import type { BatidaRegistrada, DataISO, Estado, ResultadoDia, ResultadoPeriodo } from '@ponto-certo/motor';
 import { vigentes } from './calculo';
@@ -66,7 +66,8 @@ function ocorrencias(dia: ResultadoDia, estado: Estado): string {
   for (const a of estado.ajustes.filter((x) => x.ativo && x.data === dia.data)) {
     itens.push(`${a.tipo === 'abono_horas' ? 'Abono de' : 'Ajuste do banco'} ${formatarSaldo(a.segundos)}: ${a.justificativa}`);
   }
-  if (dia.toleranciaAplicada) itens.push(`${formatarSaldo(dia.saldoBruto)} zerados pela tolerância da CLT`);
+  const tolerancia = descreverToleranciaDoDia(dia);
+  if (tolerancia) itens.push(tolerancia);
   return itens.join(' · ');
 }
 
@@ -170,7 +171,7 @@ export function montarRelatorio(estado: Estado, relogio: Relogio, de: DataISO, a
     ['Feriados', periodo.resumo.feriados],
     ['Pendências', periodo.resumo.pendencias],
     ['Conferência com o Gmail', conf ? `${conf.totalGmail} e-mails = ${conf.totalPlanilha} registros (${dataHoraBR(conf.quando)})${conf.ok ? '' : ' — NÃO BATEU'}` : 'não disponível'],
-    ['Observação', 'Horários com segundos, como nos comprovantes. Tolerância da CLT (±10 min por dia) aplicada. Batidas manuais não têm comprovante.'],
+    ['Observação', `Horários com segundos, como nos comprovantes. Tolerância da CLT: ${descreverRegraTolerancia(estado.config, ate)}. Batidas manuais não têm comprovante.`],
   ];
 
   return { nomeArquivo: `ponto_${de}_a_${ate}.xlsx`, de, ate, periodo, resumo, dias, comprovantes, justificativas };

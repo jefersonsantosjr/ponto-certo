@@ -18,16 +18,49 @@ describe('calcularDia: base', () => {
     expect(d.saldo).toBe(22);
   });
 
+  // Tolerância por batida (CLT art. 58 §1º + Súmula 366 do TST): entrada × 08:00 e saída × 18:00.
+  // Até 5min00s em cada uma não conta; a partir de 5min01s conta a diferença inteira.
   it.each([
-    ['17:50:00', -600, 0, true],
-    ['17:49:59', -601, -601, false],
-    ['18:10:00', 600, 0, true],
-    ['18:10:01', 601, 601, false],
-  ])('tolerância: saída %s → bruto %i, saldo %i', (saida, bruto, saldo, aplicada) => {
-    const d = diaDeTeste('2026-10-19', ['08:00', '12:00', '13:12', saida]);
-    expect(d.saldoBruto).toBe(bruto);
+    ['08:00:00', '17:55:00', 0, true],
+    ['08:00:00', '17:54:59', -301, false],
+    ['08:00:00', '18:05:00', 0, true],
+    ['08:00:00', '18:05:01', 301, false],
+    ['08:05:00', '18:00:00', 0, true],
+    ['08:05:01', '18:00:00', -301, false],
+    ['07:55:00', '18:00:00', 0, true],
+    ['07:54:59', '18:00:00', 301, false],
+    ['08:04:00', '18:04:00', 0, true],
+    ['07:56:00', '18:21:00', 1260, true],
+  ])('tolerância por batida: entrada %s, saída %s → saldo %i', (entrada, saida, saldo, aplicada) => {
+    const d = diaDeTeste('2026-10-19', [entrada, '12:00', '13:12', saida]);
     expect(d.saldo).toBe(saldo);
     expect(d.toleranciaAplicada).toBe(aplicada);
+  });
+
+  it('diz quais batidas a tolerância segurou (positivo = a favor dela)', () => {
+    expect(diaDeTeste('2026-10-19', ['07:56:00', '12:00', '13:12', '18:03:10']).tolerancias).toEqual([
+      { marcacao: 'entrada', segundos: h('07:56'), diferenca: 240 },
+      { marcacao: 'saida', segundos: h('18:03:10'), diferenca: 190 },
+    ]);
+    expect(diaDeTeste('2026-10-19', ['08:03', '12:00', '13:12', '18:21']).tolerancias).toEqual([
+      { marcacao: 'entrada', segundos: h('08:03'), diferenca: -180 },
+    ]);
+    expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:12', '18:00']).tolerancias).toEqual([]);
+  });
+
+  it('o almoço conta pela duração exata, sem tolerância', () => {
+    expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:15', '18:00'])).toMatchObject({ saldo: -180, toleranciaAplicada: false });
+  });
+
+  it('dia em andamento: a tolerância vale para a entrada', () => {
+    const d = diaDeTeste('2026-10-23', ['07:59:38']);
+    expect(d.ajusteTolerancia).toBe(22);
+  });
+
+  it('sem horário de referência na jornada (config antiga), usa o total do dia (±10min)', () => {
+    const antiga = { ...CONFIG, jornadas: CONFIG.jornadas.map(({ entrada: _e, saida: _s, ...j }) => j) };
+    expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:12', '17:50'], { config: antiga })).toMatchObject({ saldoBruto: -600, saldo: 0 });
+    expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:12', '17:49:59'], { config: antiga }).saldo).toBe(-601);
   });
 
   it('batida até 5min00s depois é duplicada; 5min01s não', () => {
@@ -108,17 +141,17 @@ describe('calcularDia: base', () => {
 describe('calcularDia: intervalos e almoço', () => {
   const EXEMPLO = ['07:56', '07:57', '10:00', '10:50', '12:10', '13:22', '18:21'];
 
-  it('exemplo 6.7 da spec, sem resposta: −25min e pendência de abono', () => {
+  it('exemplo 6.7 da spec, sem resposta: −29min (entrada 4min antes não conta) e pendência de abono', () => {
     const d = diaDeTeste('2026-10-20', EXEMPLO);
     expect(d.trabalhado).toBe(30180);
-    expect(d.saldo).toBe(-1500);
+    expect(d.saldo).toBe(-1740);
     expect(d.intervalos.map((i) => [i.tipo, i.inicio, i.fim])).toEqual([['saida', h('10:00'), h('10:50')], ['almoco', h('12:10'), h('13:22')]]);
     expect(d.pendencias).toEqual([{ tipo: 'abono_intervalo', data: '2026-10-20', inicio: h('10:00'), fim: h('10:50') }]);
   });
 
-  it('exemplo 6.7 com abono: +25min', () => {
+  it('exemplo 6.7 com abono: +21min', () => {
     const respostas: Resposta[] = [{ tipo: 'abono_intervalo', data: '2026-10-20', inicio: h('10:00'), fim: h('10:50'), abonado: true, justificativa: 'Dentista' }];
-    expect(diaDeTeste('2026-10-20', EXEMPLO, { respostas })).toMatchObject({ trabalhado: 33180, saldo: 1500, abonado: 3000, pendencias: [] });
+    expect(diaDeTeste('2026-10-20', EXEMPLO, { respostas })).toMatchObject({ trabalhado: 33180, saldo: 1260, abonado: 3000, pendencias: [] });
   });
 
   it('só 2 batidas num dia longo: desconta 1h12 e pergunta', () => {

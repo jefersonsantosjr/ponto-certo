@@ -1,4 +1,4 @@
-import { dataValida, formatarDuracao, formatarHora, formatarHoraCurta, formatarSaldo, jornadaVigente } from '@ponto-certo/motor';
+import { dataValida, descreverToleranciaDoDia, formatarDuracao, formatarHora, formatarHoraCurta, formatarSaldo, jornadaVigente } from '@ponto-certo/motor';
 import type { BatidaNoDia, Pendencia, ResultadoDia } from '@ponto-certo/motor';
 import { classificarNovaBatida } from '@ponto-certo/motor';
 import { Avisos } from '../componentes/Avisos';
@@ -49,6 +49,7 @@ export function Dia({ parametro }: { parametro: string | null }) {
 
   const jornada = jornadaVigente(data, estado.config.jornadas) ?? estado.config.jornadas[0];
   const saldo = partesDoSaldo(dia.saldo);
+  const tolerancia = descreverToleranciaDoDia(dia);
   const abonoPendente = dia.pendencias.find((p): p is Extract<Pendencia, { tipo: 'abono_intervalo' }> => p.tipo === 'abono_intervalo');
   const efeitoAbono = abonoPendente
     ? efeitoDaHipotese(estado, calculo.relogio, data, { respostas: [{ ...abonoPendente, abonado: true, justificativa: 'prévia' }] })
@@ -78,7 +79,7 @@ export function Dia({ parametro }: { parametro: string | null }) {
         </div>
         {STATUS[dia.status] && <div class="discreto" style={{ marginTop: '4px' }}>{STATUS[dia.status]}</div>}
         {dia.feriado && <div class="chip neutro">{dia.feriado}</div>}
-        {dia.toleranciaAplicada && <div class="chip neutro">{formatarSaldo(dia.saldoBruto)} zerados pela tolerância da CLT</div>}
+        {tolerancia && <div class="chip neutro">{tolerancia}</div>}
         {efeitoAbono && abonoPendente && (
           <div class="chip ambar">Se a saída das {formatarHoraCurta(abonoPendente.inicio)} for abonada: {formatarSaldo(efeitoAbono.saldoDia)}</div>
         )}

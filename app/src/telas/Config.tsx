@@ -17,6 +17,12 @@ export function Config() {
   const diasComCarga = jornada.cargaPorDiaSemana.map((c, i) => (c > 0 ? NOMES_DIAS[i] : null)).filter(Boolean);
   const cargas = [...new Set(jornada.cargaPorDiaSemana.filter((c) => c > 0))];
   const { regras, feriados } = estado.config;
+  const porBatida = jornada.entrada !== undefined && jornada.saida !== undefined;
+  const tolerancia = !regras.toleranciaLigada
+    ? 'desligada'
+    : porBatida
+      ? `até ${formatarDuracao(regras.toleranciaMarcacao ?? 300)} na entrada e na saída`
+      : `±${formatarDuracao(regras.tolerancia)} no total do dia`;
   const saude = avaliarSaude(estado.saude, new Date());
   const conf = estado.saude.ultimaConferencia;
 
@@ -39,13 +45,17 @@ export function Config() {
       <div class="cartao lista">
         <div class="item"><span>Dias</span><b>{diasComCarga.length === 5 && diasComCarga[0] === 'Seg' ? 'Segunda a sexta' : diasComCarga.join(', ')}</b></div>
         <div class="item"><span>Carga diária</span><b>{cargas.map(formatarDuracao).join(' / ')}</b></div>
+        {jornada.entrada !== undefined && jornada.saida !== undefined && (
+          <div class="item"><span>Horário</span><b>{formatarHoraCurta(jornada.entrada)} às {formatarHoraCurta(jornada.saida)}</b></div>
+        )}
         <div class="item"><span>Almoço</span><b>{formatarDuracao(jornada.almocoPadrao)} · sai entre {formatarHoraCurta(jornada.janelaAlmoco.inicio)} e {formatarHoraCurta(jornada.janelaAlmoco.fim)}</b></div>
         <div class="item"><span>Vale desde</span><b>{dataBR(jornada.inicio)}</b></div>
       </div>
 
       <div class="secao">Regras do cálculo</div>
       <div class="cartao lista">
-        <div class="item"><span>Tolerância da CLT</span><b>{regras.toleranciaLigada ? `±${formatarDuracao(regras.tolerancia)} por dia` : 'desligada'}</b></div>
+        <div class="item"><span>Tolerância da CLT</span><b>{tolerancia}</b></div>
+        {regras.toleranciaLigada && porBatida && <div class="item"><span>Passou da tolerância</span><b>conta tudo · almoço conta exato</b></div>}
         <div class="item"><span>Batida duplicada</span><b>até {formatarDuracao(regras.limiteDuplicada)} depois</b></div>
         <div class="item"><span>Início do banco</span><b>{dataBR(estado.config.inicioBanco)} · saldo {formatarSaldo(estado.config.saldoInicial)}</b></div>
         <div class="item"><span>Feriados</span><b>nacionais{feriados.incluir.length ? ` + ${feriados.incluir.length} locais` : ''}{feriados.excluir.length ? ` − ${feriados.excluir.length}` : ''}</b></div>

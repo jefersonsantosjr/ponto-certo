@@ -30,7 +30,7 @@ describe('avisosDeBatidas', () => {
       [{ tipo: 'entrada', segundos: paraSegundos('07:59:38') }],
       [{ tipo: 'saida_intermediaria', segundos: paraSegundos('12:03:12'), almoco: true }],
       [{ tipo: 'volta', segundos: paraSegundos('13:15:12'), previsao: paraSegundos('17:59:38') }],
-      [{ tipo: 'resumo_saida', saldoDia: 0, bancoAntes: 970, bancoDepois: 970 }],
+      [{ tipo: 'resumo_saida', saldoDia: 0, bancoAntes: 917, bancoDepois: 917 }],
     ]);
   });
 

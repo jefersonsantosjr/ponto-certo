@@ -12,8 +12,8 @@ describe('resumoHoje', () => {
   const r = resumoHoje(estado, calcular(estado, relogio));
 
   it('banco até ontem, sem o dia em andamento', () => {
-    expect(r.banco).toBe(-5580);
-    expect(r.saldoMes).toBe(1920);
+    expect(r.banco).toBe(-5880);
+    expect(r.saldoMes).toBe(1620);
     expect(r.mesNome).toBe('outubro');
   });
 
@@ -29,8 +29,8 @@ describe('resumoHoje', () => {
   });
 
   it('monta a semana de segunda a sexta, com hoje em andamento', () => {
-    expect(r.semana.map((d) => [d.rotulo, d.saldo])).toEqual([['seg', 720], ['ter', -1500], ['qua', 1920], ['qui', 780], ['hoje', null]]);
-    expect(r.saldoSemana).toBe(1920);
+    expect(r.semana.map((d) => [d.rotulo, d.saldo])).toEqual([['seg', 720], ['ter', -1740], ['qua', 1800], ['qui', 840], ['hoje', null]]);
+    expect(r.saldoSemana).toBe(1620);
     expect(r.saudacao).toBe('Boa tarde');
     expect(r.dataExtenso).toBe('Sexta, 23 de outubro');
   });
@@ -41,12 +41,12 @@ describe('resumoHoje', () => {
 });
 
 describe('prévia de uma resposta', () => {
-  it('abono da saída do dia 20 vira +25min e o banco sobe 50min', () => {
+  it('abono da saída do dia 20 vira +21min e o banco sobe 50min', () => {
     const estado = estadoDaSemana();
     const efeito = efeitoDaHipotese(estado, relogio, '2026-10-20', {
       respostas: [{ tipo: 'abono_intervalo', data: '2026-10-20', inicio: 36000, fim: 39000, abonado: true, justificativa: 'Dentista' }],
     });
-    expect(efeito).toEqual({ saldoDiaAntes: -1500, saldoDia: 1500, bancoAntes: -5580, bancoDepois: -2580 });
-    expect(textoDoEfeito('2026-10-20', efeito, '2026-10-23')).toBe('Com isso, o dia 20/10 fica +25min e o banco vai pra −43min.');
+    expect(efeito).toEqual({ saldoDiaAntes: -1740, saldoDia: 1260, bancoAntes: -5880, bancoDepois: -2880 });
+    expect(textoDoEfeito('2026-10-20', efeito, '2026-10-23')).toBe('Com isso, o dia 20/10 fica +21min e o banco vai pra −48min.');
   });
 });
