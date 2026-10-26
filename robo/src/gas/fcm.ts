@@ -1,6 +1,7 @@
 // Envio de push pelo Firebase Cloud Messaging (API HTTP v1), autenticado com a conta de serviço do projeto Firebase dela.
 // A credencial fica só nas Propriedades do Script (FCM_CONTA_SERVICO); os aparelhos, em DISPOSITIVOS.
 import type { PayloadNotificacao } from '../../../motor/src/index';
+import { agoraLocal } from './tempoLocal';
 
 interface ContaServico {
   project_id: string;
@@ -13,6 +14,8 @@ interface Aparelho {
   papel: string;
   aparelho: string;
   criado: string;
+  /** Resultado do último envio para este aparelho (para diagnóstico). */
+  ultimoEnvio?: { quando: string; ok: boolean; detalhe: string };
 }
 
 const props = (): GoogleAppsScript.Properties.Properties => PropertiesService.getScriptProperties();
@@ -44,6 +47,11 @@ export function servidorPronto(): boolean {
 
 export function quantidadeAparelhos(): number {
   return Object.keys(lerAparelhos()).length;
+}
+
+/** Situação de cada aparelho, sem nome nem token (vai no status público do robô, para diagnóstico). */
+export function resumoAparelhos(): Array<Omit<Aparelho, 'nome'>> {
+  return Object.values(lerAparelhos()).map(({ papel, aparelho, criado, ultimoEnvio }) => ({ papel, aparelho, criado, ultimoEnvio }));
 }
 
 export function registrarAparelho(fcmToken: string, dados: Omit<Aparelho, 'criado'>, criado: string): void {
@@ -79,8 +87,26 @@ function tokenDeAcesso(conta: ContaServico): string {
   return resposta.access_token;
 }
 
-/** Envia para um aparelho. Devolve se foi aceito e, se o token não vale mais, já remove o aparelho. */
+function anotarEnvio(fcmToken: string, ok: boolean, detalhe: string): void {
+  const a = lerAparelhos();
+  if (!a[fcmToken]) return;
+  a[fcmToken].ultimoEnvio = { quando: agoraLocal().iso, ok, detalhe: detalhe.slice(0, 200) };
+  gravarAparelhos(a);
+}
+
+/** Envia para um aparelho e anota o resultado nele. Se o token não vale mais, já remove o aparelho. */
 export function enviarPara(fcmToken: string, payload: PayloadNotificacao): { enviada: boolean; detalhe: string } {
+  try {
+    const r = enviarAoFirebase(fcmToken, payload);
+    anotarEnvio(fcmToken, r.enviada, r.detalhe);
+    return r;
+  } catch (erro) {
+    anotarEnvio(fcmToken, false, String(erro));
+    throw erro;
+  }
+}
+
+function enviarAoFirebase(fcmToken: string, payload: PayloadNotificacao): { enviada: boolean; detalhe: string } {
   const conta = lerConta();
   if (!conta) return { enviada: false, detalhe: 'O robô ainda não tem a chave do Firebase.' };
   const r = UrlFetchApp.fetch(`https://fcm.googleapis.com/v1/projects/${conta.project_id}/messages:send`, {

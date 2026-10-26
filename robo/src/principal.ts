@@ -299,7 +299,7 @@ const dependencias: DependenciasApi = {
 export function doGet(): GoogleAppsScript.Content.TextOutput {
   instalarContaEmbutida();
   instalarRecadosExtras();
-  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos(), recadosAgendados: lerRecadosExtras().filter((iso) => iso >= agoraLocal().iso) } });
+  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos(), lista: fcm.resumoAparelhos(), recadosAgendados: lerRecadosExtras().filter((iso) => iso >= agoraLocal().iso) } });
 }
 
 export function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
