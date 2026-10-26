@@ -29,7 +29,7 @@ describe('avisosDeBatidas', () => {
     expect(eventos).toEqual([
       [{ tipo: 'entrada', segundos: paraSegundos('07:59:38') }],
       [{ tipo: 'saida_intermediaria', segundos: paraSegundos('12:03:12'), almoco: true }],
-      [{ tipo: 'volta', segundos: paraSegundos('13:15:12'), previsao: paraSegundos('17:59:38') }],
+      [{ tipo: 'volta', segundos: paraSegundos('13:15:12'), previsao: paraSegundos('17:55:00') }],
       [{ tipo: 'resumo_saida', saldoDia: 0, bancoAntes: 917, bancoDepois: 917 }],
     ]);
   });
@@ -38,7 +38,7 @@ describe('avisosDeBatidas', () => {
     const d = dados(['07:59:38', '12:03:12', '13:15:12'], '13:15:30');
     const volta = d.batidas.find((b) => b.data === HOJE && b.hora === '13:15:12');
     expect(avisosDeBatidas(volta ? [volta] : [], d)).toEqual([
-      { chave: `batida|${HOJE}-13:15:12`, evento: { tipo: 'volta', segundos: paraSegundos('13:15:12'), previsao: paraSegundos('17:59:38') } },
+      { chave: `batida|${HOJE}-13:15:12`, evento: { tipo: 'volta', segundos: paraSegundos('13:15:12'), previsao: paraSegundos('17:55:00') } },
     ]);
   });
 

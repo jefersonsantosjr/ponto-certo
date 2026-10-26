@@ -21,7 +21,7 @@ describe('resumoHoje', () => {
     expect(r.dentro).toBe(true);
     expect(r.trabalhadoAoVivo).toBe(14614 + (paraSegundos('15:42:00') - paraSegundos('13:15:12')));
     expect(r.carga).toBe(31680);
-    expect(r.previsao).toBe(64778);
+    expect(r.previsao).toBe(paraSegundos('17:55:00')); // entrada 07:59:38 e saída a partir de 17:55 ficam na tolerância
   });
 
   it('rotula as batidas de hoje', () => {

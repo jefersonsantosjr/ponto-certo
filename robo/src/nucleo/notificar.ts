@@ -60,7 +60,7 @@ export function avisosDeBatidas(novas: BatidaRegistrada[], d: DadosAviso): Aviso
     let evento: EventoNotificacao;
     if (tipo.tipo === 'entrada') evento = { tipo: 'entrada', segundos: b.segundos };
     else if (tipo.tipo === 'saida_intermediaria') evento = { tipo: 'saida_intermediaria', segundos: b.segundos, almoco: tipo.almoco };
-    else if (tipo.tipo === 'volta') evento = { tipo: 'volta', segundos: b.segundos, previsao: previsaoSaida(dia, jornada) };
+    else if (tipo.tipo === 'volta') evento = { tipo: 'volta', segundos: b.segundos, previsao: previsaoSaida(dia, jornada, d.config.regras) };
     else evento = { tipo: 'resumo_saida', saldoDia: dia.saldo, bancoAntes, bancoDepois: bancoAntes + dia.saldo };
     avisos.push({ chave: `batida|${b.id}`, evento });
   }

@@ -89,7 +89,7 @@ export function resumoHoje(estado: Estado, calculo: Calculo): ResumoHoje {
     carga,
     progresso: carga > 0 ? Math.min(1, trabalhadoAoVivo / carga) : 0,
     dentro,
-    previsao: dia ? previsaoSaida(dia, jornada) : null,
+    previsao: dia ? previsaoSaida(dia, jornada, estado.config.regras) : null,
     batidas,
     semana,
     saldoSemana: semana.reduce((s, d) => s + (d.saldo ?? 0), 0),

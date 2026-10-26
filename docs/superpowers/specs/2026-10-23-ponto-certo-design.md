@@ -221,6 +221,7 @@ Versão inicial, que vale desde o início do banco:
 - **Previsão de saída:** quando ela está "dentro" (a última batida foi uma entrada), a previsão é a hora dessa última entrada + (carga − horas já trabalhadas).
   - Se ela ainda não almoçou (nenhuma saída começando no horário de almoço), soma o almoço padrão (1h12).
   - A conta é feita em segundos, e a tela mostra o horário arredondado para o minuto seguinte. Assim, sair naquele minuto fecha o dia sem ficar devendo.
+  - **Com a tolerância (passo 9 de 6.4):** o que a tolerância segurou na entrada é somado (chegou antes) ou descontado (atrasou) do que falta. Se a previsão cair na janela da saída (17:55–18:05), o saldo fica parado ali: se não fica negativo, a previsão vira 17:55; se fica, vira 18:05:01, porque até 18:05 a saída não paga nada. Exemplo: entrada 07:59:38 e almoço de 1h12 → previsão 17:55.
 
 ### 6.6 Banco de horas
 
