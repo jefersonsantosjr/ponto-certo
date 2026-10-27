@@ -75,6 +75,12 @@ export function Config() {
       <div class="secao">Acesso</div>
       <div class="cartao lista">
         <div class="item"><span>{estado.usuario.nome}</span><b>{estado.usuario.papel === 'dona' ? 'dona' : 'só leitura'}</b></div>
+        {app.protecaoDados && app.protecaoDados !== 'indisponivel' && (
+          <div class="item">
+            <span>Dados neste celular</span>
+            <b class={app.protecaoDados === 'protegido' ? 'pos' : 'ambar'}>{app.protecaoDados === 'protegido' ? 'protegidos ✓' : 'sem proteção · instale na tela inicial'}</b>
+          </div>
+        )}
         {MODO_EXEMPLO && <div class="item"><span>Modo</span><b>demonstração (dados falsos)</b></div>}
       </div>
 

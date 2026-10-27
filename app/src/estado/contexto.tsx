@@ -6,7 +6,7 @@ import {
   ERROS_DE_SESSAO, ErroApi, ativar as ativarNoRobo, clienteReal, descreverAparelho, type ClienteApi, type NovoAjuste, type ResultadoTeste,
 } from '../api/cliente';
 import { SESSAO_DE_EXEMPLO, clienteDeExemplo } from '../api/mock';
-import { apagarTudo, lerEstadoEmCache, lerSessao, salvarEstadoEmCache, salvarSessao, type SessaoLocal } from '../api/sessao';
+import { apagarTudo, lerEstadoEmCache, lerSessao, protegerDados, salvarEstadoEmCache, salvarSessao, type ProtecaoDados, type SessaoLocal } from '../api/sessao';
 import { calcular, type Calculo } from '../dados/calculo';
 import { relogioDe, type Relogio } from '../dados/datas';
 import {
@@ -34,6 +34,8 @@ export interface ContextoApp {
   /** Quando os dados em tela foram recebidos do robô (ISO do aparelho). */
   recebidoEm: string | null;
   erro: string | null;
+  /** Se o navegador prometeu não apagar os dados deste aparelho sozinho (null enquanto não perguntou). */
+  protecaoDados: ProtecaoDados | null;
   podeEscrever: boolean;
   folha: FolhaAberta | null;
   abrirFolha(folha: FolhaAberta): void;
@@ -105,7 +107,7 @@ export function ProvedorApp({ children }: { children: ComponentChildren }) {
   const tratarErro = useCallback((e: unknown) => {
     if (e instanceof ErroApi) {
       if (ERROS_DE_SESSAO.has(e.codigo)) {
-        apagarTudo();
+        // Não apaga o acesso guardado: se foi um tropeço do robô, na próxima abertura ele vale de novo. Um link novo substitui.
         setSessao(null);
         setEstado(null);
         setErro('Seu acesso expirou. Peça um novo link de ativação.');
@@ -156,6 +158,14 @@ export function ProvedorApp({ children }: { children: ComponentChildren }) {
   }, []);
 
   const calculo = useMemo(() => (estado ? calcular(estado, relogio) : null), [estado, relogio]);
+
+  // Com acesso ativo, pede para o navegador não apagar os dados sozinho (de novo quando a permissão muda: notificação ligada conta a favor).
+  const [protecaoDados, setProtecaoDados] = useState<ProtecaoDados | null>(null);
+  const temSessao = sessao !== null;
+  useEffect(() => {
+    if (!temSessao || MODO_EXEMPLO) return;
+    void protegerDados().then(setProtecaoDados);
+  }, [temSessao, permissao]);
 
   // Notificações: descobre se o navegador aceita e acompanha a permissão quando o app volta a ficar visível.
   useEffect(() => {
@@ -220,6 +230,7 @@ export function ProvedorApp({ children }: { children: ComponentChildren }) {
     semConexao,
     recebidoEm,
     erro,
+    protecaoDados,
     podeEscrever: sessao?.papel === 'dona' && !semConexao,
     folha,
     abrirFolha: setFolha,
