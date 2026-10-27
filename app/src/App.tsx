@@ -2,6 +2,7 @@ import { Abas } from './componentes/Abas';
 import { Carregando } from './componentes/Avisos';
 import { FolhaBatida } from './componentes/FolhaBatida';
 import { FolhaLancamento } from './componentes/FolhaLancamento';
+import type { RetornoGoogle } from './api/google';
 import { FolhaResposta } from './componentes/FolhaResposta';
 import { ProvedorApp, useApp } from './estado/contexto';
 import { useRota } from './estado/rotas';
@@ -67,9 +68,9 @@ function Raiz() {
   );
 }
 
-export function App() {
+export function App({ retornoGoogle = null }: { retornoGoogle?: RetornoGoogle | null }) {
   return (
-    <ProvedorApp>
+    <ProvedorApp retornoGoogle={retornoGoogle}>
       <Raiz />
     </ProvedorApp>
   );

@@ -30,6 +30,8 @@ export interface ClienteApi {
   marcarAlertasLidos(ids: string[]): Promise<void>;
   registrarDispositivo(fcmToken: string, aparelho: string): Promise<Estado>;
   testarNotificacao(fcmToken: string): Promise<ResultadoTeste>;
+  /** Liga a conta Google (ID token) a este acesso. */
+  vincularGoogle(credencial: string): Promise<Estado>;
   sair(): Promise<void>;
 }
 
@@ -61,6 +63,10 @@ export function ativar(urlRobo: string, codigo: string, aparelho: string): Promi
   return chamar<Sessao>(urlRobo, { acao: 'ativar', codigo, aparelho });
 }
 
+export function entrarComGoogle(urlRobo: string, credencial: string, aparelho: string): Promise<Sessao> {
+  return chamar<Sessao>(urlRobo, { acao: 'entrarComGoogle', credencial, aparelho });
+}
+
 export function clienteReal(sessao: SessaoLocal): ClienteApi {
   const { urlRobo, token } = sessao;
   return {
@@ -74,6 +80,7 @@ export function clienteReal(sessao: SessaoLocal): ClienteApi {
     },
     registrarDispositivo: (fcmToken, aparelho) => chamar<Estado>(urlRobo, { acao: 'registrarDispositivo', token, fcmToken, aparelho }),
     testarNotificacao: (fcmToken) => chamar<ResultadoTeste>(urlRobo, { acao: 'testarNotificacao', token, fcmToken }),
+    vincularGoogle: (credencial) => chamar<Estado>(urlRobo, { acao: 'vincularGoogle', token, credencial }),
     sair: async () => {
       await chamar<unknown>(urlRobo, { acao: 'sair', token });
     },

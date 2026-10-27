@@ -3,8 +3,10 @@ import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import {
-  ERROS_DE_SESSAO, ErroApi, ativar as ativarNoRobo, clienteReal, descreverAparelho, type ClienteApi, type NovoAjuste, type ResultadoTeste,
+  ERROS_DE_SESSAO, ErroApi, ativar as ativarNoRobo, clienteReal, descreverAparelho, entrarComGoogle as entrarNoRoboComGoogle, type ClienteApi, type NovoAjuste,
+  type ResultadoTeste,
 } from '../api/cliente';
+import { URL_ROBO_PUBLICADO, googleConfigurado, irParaGoogle, type RetornoGoogle } from '../api/google';
 import { SESSAO_DE_EXEMPLO, clienteDeExemplo } from '../api/mock';
 import { apagarTudo, lerEstadoEmCache, lerSessao, protegerDados, salvarEstadoEmCache, salvarSessao, type ProtecaoDados, type SessaoLocal } from '../api/sessao';
 import { calcular, type Calculo } from '../dados/calculo';
@@ -52,6 +54,10 @@ export interface ContextoApp {
   /** Chame direto no clique (pede a permissão do navegador). Devolve o resultado do teste, ou null se não ativou. */
   ativarNotificacoes(): Promise<ResultadoTeste | null>;
   testarNotificacao(): Promise<ResultadoTeste | null>;
+  google: { disponivel: boolean; entrando: boolean };
+  /** Saem do app para o login do Google e voltam com o token (tratado pelo provedor ao abrir). */
+  entrarComGoogle(): void;
+  vincularGoogle(): void;
 }
 
 export interface EstadoNotificacoes {
@@ -74,7 +80,7 @@ export function useApp(): ContextoApp {
 const INTERVALO_ATUALIZACAO = 60_000;
 const INTERVALO_RELOGIO = 15_000;
 
-export function ProvedorApp({ children }: { children: ComponentChildren }) {
+export function ProvedorApp({ children, retornoGoogle = null }: { children: ComponentChildren; retornoGoogle?: RetornoGoogle | null }) {
   const [sessao, setSessao] = useState<SessaoLocal | null>(() => (MODO_EXEMPLO ? SESSAO_DE_EXEMPLO : lerSessao()));
   const emCache = useMemo(() => (MODO_EXEMPLO ? null : lerEstadoEmCache()), []);
   const [estado, setEstado] = useState<Estado | null>(emCache?.estado ?? null);
@@ -199,6 +205,43 @@ export function ProvedorApp({ children }: { children: ComponentChildren }) {
     })();
   }, [cliente, sessao, temEstado, pushSuportado, permissao, receber, lembrarRegistro]);
 
+  // Volta do login com o Google (capturada em main.tsx antes da primeira tela). Erros só viram aviso: nunca mexem no acesso guardado.
+  const [entrandoComGoogle, setEntrandoComGoogle] = useState(() => retornoGoogle !== null && 'credencial' in retornoGoogle && retornoGoogle.intencao === 'entrar');
+  const retornoTratado = useRef(false);
+  useEffect(() => {
+    if (!retornoGoogle || retornoTratado.current) return;
+    if ('erro' in retornoGoogle) {
+      retornoTratado.current = true;
+      setErro(retornoGoogle.erro);
+      return;
+    }
+    const { credencial } = retornoGoogle;
+    if (retornoGoogle.intencao === 'entrar') {
+      retornoTratado.current = true;
+      void (async () => {
+        try {
+          const nova = await entrarNoRoboComGoogle(URL_ROBO_PUBLICADO, credencial, descreverAparelho(navigator.userAgent));
+          const local: SessaoLocal = { urlRobo: URL_ROBO_PUBLICADO, token: nova.token, nome: nova.nome, papel: nova.papel };
+          salvarSessao(local);
+          setSessao(local);
+          setErro(null);
+        } catch (e) {
+          setErro(e instanceof ErroApi ? e.message : 'Não deu pra entrar com o Google. Tente de novo.');
+        } finally {
+          setEntrandoComGoogle(false);
+        }
+      })();
+      return;
+    }
+    if (!cliente) return;
+    retornoTratado.current = true;
+    setCarregando(true);
+    void cliente.vincularGoogle(credencial).then(receber, (e: unknown) => {
+      if (e instanceof ErroApi && !ERROS_DE_SESSAO.has(e.codigo)) setErro(e.message);
+      else setErro('Não deu pra ligar a conta Google agora. Tente de novo.');
+    }).finally(() => setCarregando(false));
+  }, [retornoGoogle, cliente, receber]);
+
   const erroDeNotificacao = useCallback((e: unknown) => {
     if (e instanceof ErroApi) tratarErro(e);
     else if (e instanceof ErroNotificacao) setErro(e.message);
@@ -313,6 +356,9 @@ export function ProvedorApp({ children }: { children: ComponentChildren }) {
         setOcupadoPush(false);
       }
     },
+    google: { disponivel: googleConfigurado(), entrando: entrandoComGoogle },
+    entrarComGoogle: () => irParaGoogle('entrar'),
+    vincularGoogle: () => irParaGoogle('vincular'),
     testarNotificacao: async () => {
       if (!cliente || !registroPush) return null;
       setOcupadoPush(true);

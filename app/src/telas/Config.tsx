@@ -81,8 +81,17 @@ export function Config() {
             <b class={app.protecaoDados === 'protegido' ? 'pos' : 'ambar'}>{app.protecaoDados === 'protegido' ? 'protegidos ✓' : 'sem proteção · instale na tela inicial'}</b>
           </div>
         )}
+        {app.google.disponivel && (
+          <div class="item"><span>Conta Google</span><b class={estado.usuario.contaGoogle ? 'pos' : 'ambar'}>{estado.usuario.contaGoogle ? 'ligada ✓' : 'não ligada'}</b></div>
+        )}
         {MODO_EXEMPLO && <div class="item"><span>Modo</span><b>demonstração (dados falsos)</b></div>}
       </div>
+      {app.google.disponivel && !estado.usuario.contaGoogle && (
+        <div class="campos">
+          <button type="button" class="botao-secundario" disabled={app.carregando} onClick={app.vincularGoogle}>Ligar minha conta Google</button>
+          <p class="dica">Se este celular perder o acesso, é só tocar em "Entrar com o Google" que você volta, sem precisar de link.</p>
+        </div>
+      )}
 
       <SecaoNotificacoes />
 

@@ -100,7 +100,8 @@ export interface Estado {
   hoje: DataISO;
   /** Hora local do robô, em segundos desde a meia-noite. */
   agora: Segundos;
-  usuario: { nome: string; papel: Papel };
+  /** `contaGoogle`: já tem conta Google vinculada (se o celular perder o acesso, volta com "Entrar com o Google"). */
+  usuario: { nome: string; papel: Papel; contaGoogle?: boolean };
   /** Nome usado nas saudações (ex.: "Larissa"). */
   nomeExibicao: string;
   identidade: { cpfMascarado: string; nome: string; cnpj: string } | null;
@@ -122,6 +123,8 @@ export interface Sessao {
 
 export type Requisicao =
   | { acao: 'ativar'; codigo: string; aparelho: string }
+  | { acao: 'entrarComGoogle'; credencial: string; aparelho: string }
+  | { acao: 'vincularGoogle'; token: string; credencial: string }
   | { acao: 'estado'; token: string }
   | { acao: 'sincronizar'; token: string }
   | { acao: 'responder'; token: string; resposta: Resposta }
@@ -133,7 +136,7 @@ export type Requisicao =
   | { acao: 'sair'; token: string };
 
 /**
- * Envelope de toda resposta do robô. 'ativar' devolve Sessao; 'estado', 'sincronizar', 'responder', 'batidaManual',
- * 'ajustar' e 'registrarDispositivo' devolvem Estado; 'testarNotificacao' devolve { enviada: boolean; detalhe: string }.
+ * Envelope de toda resposta do robô. 'ativar' e 'entrarComGoogle' devolvem Sessao; 'estado', 'sincronizar', 'responder', 'batidaManual',
+ * 'ajustar', 'registrarDispositivo' e 'vincularGoogle' devolvem Estado; 'testarNotificacao' devolve { enviada: boolean; detalhe: string }.
  */
 export type RespostaApi<T> = { ok: true; dados: T } | { ok: false; erro: string; mensagem: string };

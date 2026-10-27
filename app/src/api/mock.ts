@@ -70,6 +70,10 @@ export function clienteDeExemplo(): ClienteApi {
       await mostrarNotificacaoLocal(n.titulo, n.corpo);
       return { enviada: true, detalhe: 'Demonstração: notificação local, sem robô.' };
     },
+    vincularGoogle: async () => {
+      await espera();
+      return atualizar((e) => ({ ...e, usuario: { ...e.usuario, contaGoogle: true } }));
+    },
     sair: async () => {
       await espera();
     },

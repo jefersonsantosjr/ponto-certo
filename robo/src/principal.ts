@@ -10,6 +10,7 @@ import {
 import * as sessoes from './nucleo/sessoes';
 import { sincronizar, type ModoSincronizacao } from './nucleo/sincronizar';
 import * as fcm from './gas/fcm';
+import * as google from './gas/google';
 import { gmailReal } from './gas/gmail';
 import * as planilha from './gas/planilha';
 import * as props from './gas/propriedades';
@@ -229,7 +230,7 @@ function montarEstado(usuario: { nome: string; papel: Papel }): Estado {
     geradoEm: agora.iso,
     hoje: agora.momento.data,
     agora: agora.momento.segundos,
-    usuario,
+    usuario: { ...usuario, contaGoogle: sessoes.usuarioTemContaGoogle(props.armazem, usuario) },
     nomeExibicao: nomeExibicao(),
     identidade: identidade
       ? {
@@ -251,6 +252,13 @@ function montarEstado(usuario: { nome: string; papel: Papel }): Estado {
 
 const dependencias: DependenciasApi = {
   ativar: (codigo, aparelho) => sessoes.ativar(props.armazem, props.cripto, codigo, aparelho, Date.now()),
+  lerSubGoogle: google.lerSub,
+  confirmarGoogle: google.confirmar,
+  contaGoogleVinculada: (sub) => sessoes.contaGoogleVinculada(props.armazem, props.cripto, sub),
+  vincularGoogle: (sub, usuario) => {
+    comTrava(() => sessoes.vincularContaGoogle(props.armazem, props.cripto, sub, usuario, Date.now()));
+  },
+  entrarComGoogle: (sub, aparelho) => sessoes.entrarComGoogle(props.armazem, props.cripto, sub, aparelho, Date.now()),
   validarToken: (token) => sessoes.validarToken(props.armazem, props.cripto, token, Date.now()),
   encerrar: (token) => sessoes.encerrar(props.armazem, props.cripto, token),
   estado: montarEstado,

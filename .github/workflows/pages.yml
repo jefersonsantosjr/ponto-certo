@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build -w app
+        env:
+          VITE_URL_ROBO: ${{ vars.URL_ROBO }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app/dist

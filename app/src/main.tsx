@@ -1,9 +1,12 @@
 import { render } from 'preact';
 import { App } from './App';
+import { capturarRetornoGoogle } from './api/google';
 import './estilos.css';
 
+// Antes da primeira tela: se é a volta do login com o Google, tira o token do endereço.
+const retornoGoogle = capturarRetornoGoogle();
 const raiz = document.getElementById('app');
-if (raiz) render(<App />, raiz);
+if (raiz) render(<App retornoGoogle={retornoGoogle} />, raiz);
 
 // Service worker só na versão publicada (no modo de demonstração não, pra não guardar dados falsos em cache).
 if (import.meta.env.PROD && import.meta.env.MODE !== 'mock' && 'serviceWorker' in navigator) {

@@ -4,6 +4,13 @@ import type { Ajuste, Estado, Papel, Requisicao, Resposta, RespostaApi, Sessao }
 /** O que a API precisa do resto do robô (no Apps Script: planilha, propriedades, Gmail). */
 export interface DependenciasApi {
   ativar(codigo: string, aparelho: string): Sessao | null;
+  /** Triagem local do token do Google (sem assinatura): o `sub` se é do nosso app e não venceu. */
+  lerSubGoogle(credencial: string): string | null;
+  /** Pergunta ao próprio Google se o token é legítimo: o `sub` conferido, ou null. */
+  confirmarGoogle(credencial: string): string | null;
+  contaGoogleVinculada(sub: string): boolean;
+  vincularGoogle(sub: string, usuario: { nome: string; papel: Papel }): void;
+  entrarComGoogle(sub: string, aparelho: string): Sessao | null;
   validarToken(token: string): { nome: string; papel: Papel } | null;
   encerrar(token: string): void;
   estado(usuario: { nome: string; papel: Papel }): Estado;
@@ -17,6 +24,8 @@ export interface DependenciasApi {
 }
 
 const erro = (codigo: string, mensagem: string): RespostaApi<never> => ({ ok: false, erro: codigo, mensagem });
+const GOOGLE_INVALIDO = 'O Google não confirmou o login. Tente de novo.';
+const GOOGLE_NAO_VINCULADO = 'Essa conta Google ainda não está ligada ao Ponto Certo. Entre pelo link de ativação e ligue a conta em Configurações.';
 
 export function tratarRequisicao(corpo: string, d: DependenciasApi): RespostaApi<unknown> {
   let req: Requisicao;
@@ -32,6 +41,17 @@ export function tratarRequisicao(corpo: string, d: DependenciasApi): RespostaApi
   if (req.acao === 'ativar') {
     const sessao = d.ativar(String(req.codigo ?? ''), String(req.aparelho ?? ''));
     return sessao ? { ok: true, dados: sessao } : erro('codigo_invalido', 'Este link de ativação não vale mais. Peça um novo.');
+  }
+
+  if (req.acao === 'entrarComGoogle') {
+    const credencial = String(req.credencial ?? '');
+    const sub = d.lerSubGoogle(credencial);
+    if (!sub) return erro('google_invalido', GOOGLE_INVALIDO);
+    // Só pergunta ao Google (e gasta cota) por conta que está ligada: lixo e contas estranhas param aqui.
+    if (!d.contaGoogleVinculada(sub)) return erro('google_nao_vinculado', GOOGLE_NAO_VINCULADO);
+    if (d.confirmarGoogle(credencial) !== sub) return erro('google_invalido', GOOGLE_INVALIDO);
+    const sessao = d.entrarComGoogle(sub, String(req.aparelho ?? ''));
+    return sessao ? { ok: true, dados: sessao } : erro('google_nao_vinculado', GOOGLE_NAO_VINCULADO);
   }
 
   const usuario = d.validarToken(String((req as { token?: unknown }).token ?? ''));
@@ -97,6 +117,13 @@ export function tratarRequisicao(corpo: string, d: DependenciasApi): RespostaApi
       const fcmToken = String(req.fcmToken ?? '');
       if (!fcmToken) return erro('token_invalido', 'Este aparelho ainda não ativou as notificações.');
       return { ok: true, dados: d.testarNotificacao(fcmToken, usuario) };
+    }
+    case 'vincularGoogle': {
+      const credencial = String(req.credencial ?? '');
+      const sub = d.lerSubGoogle(credencial);
+      if (!sub || d.confirmarGoogle(credencial) !== sub) return erro('google_invalido', GOOGLE_INVALIDO);
+      d.vincularGoogle(sub, usuario);
+      return { ok: true, dados: d.estado(usuario) };
     }
     case 'sair':
       d.encerrar(req.token);

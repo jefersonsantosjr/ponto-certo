@@ -16,3 +16,4 @@ export * from './conferencia';
 export * from './calculo/eventos';
 export * from './textos/notificacoes';
 export * from './textos/tolerancia';
+export * from './google';

@@ -7,6 +7,7 @@ const LOGO = `${import.meta.env.BASE_URL}icones/icone-192.png`;
 
 export function BoasVindas() {
   const app = useApp();
+  if (app.google.entrando) return <Carregando texto="Entrando com o Google…" />;
   return (
     <div class="boas-vindas">
       <img class="logo" src={LOGO} alt="" />
@@ -14,6 +15,12 @@ export function BoasVindas() {
       <p>Seu banco de horas, conferido com os comprovantes que chegam no seu e-mail.</p>
       <p><b>Pra começar, abra o link de ativação que o Jéferson te mandou.</b> É só tocar nele uma vez neste celular.</p>
       {app.erro && <div class="aviso erro">{app.erro}</div>}
+      {app.google.disponivel && (
+        <div class="campos" style={{ marginTop: '12px' }}>
+          <button type="button" class="botao-principal" onClick={app.entrarComGoogle}>Entrar com o Google</button>
+          <p class="dica">Já ligou sua conta Google no app? Toque aqui para voltar sem precisar de link.</p>
+        </div>
+      )}
     </div>
   );
 }
