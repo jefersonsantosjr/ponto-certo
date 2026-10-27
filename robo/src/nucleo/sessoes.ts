@@ -69,6 +69,11 @@ export function validarToken(arm: Armazem, cripto: Cripto, token: string, agoraM
   return { nome: s.nome, papel: s.papel };
 }
 
+/** Sessões abertas, sem token nem nome (vai no status público do robô, para diagnóstico). */
+export function resumoSessoes(arm: Armazem): Array<Omit<SessaoGuardada, 'nome'>> {
+  return Object.values(lerMapa<SessaoGuardada>(arm, CHAVE_SESSOES)).map(({ papel, aparelho, criada, usadaEm }) => ({ papel, aparelho, criada, usadaEm }));
+}
+
 export function encerrar(arm: Armazem, cripto: Cripto, token: string): void {
   const sessoes = lerMapa<SessaoGuardada>(arm, CHAVE_SESSOES);
   delete sessoes[cripto.hash(token)];

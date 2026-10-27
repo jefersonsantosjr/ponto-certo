@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { Estado, Papel, Resposta } from '../../motor/src/index';
 import { tratarRequisicao, type DependenciasApi } from '../src/nucleo/api';
-import { ativar, encerrar, gerarCodigo, validarToken, VALIDADE_CODIGO_MS, type Armazem, type Cripto } from '../src/nucleo/sessoes';
+import { ativar, encerrar, gerarCodigo, resumoSessoes, validarToken, VALIDADE_CODIGO_MS, type Armazem, type Cripto } from '../src/nucleo/sessoes';
 
 function armazemMemoria(): Armazem {
   const dados = new Map<string, string>();
@@ -37,6 +37,15 @@ describe('sessões', () => {
     const arm = armazemMemoria();
     const sessao = ativar(arm, cripto, gerarCodigo(arm, cripto, 'dona', 'Maria', 0), 'x', 1);
     expect(arm.ler('SESSOES')).not.toContain(sessao?.token ?? '???');
+  });
+
+  it('o resumo das sessões não traz token nem nome', () => {
+    const arm = armazemMemoria();
+    const sessao = ativar(arm, cripto, gerarCodigo(arm, cripto, 'dona', 'Maria', 0), 'Chrome · Android', 5);
+    const resumo = resumoSessoes(arm);
+    expect(resumo).toEqual([{ papel: 'dona', aparelho: 'Chrome · Android', criada: 5, usadaEm: 5 }]);
+    expect(JSON.stringify(resumo)).not.toContain(sessao?.token ?? '???');
+    expect(JSON.stringify(resumo)).not.toContain('Maria');
   });
 });
 

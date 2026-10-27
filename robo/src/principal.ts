@@ -13,7 +13,7 @@ import * as fcm from './gas/fcm';
 import { gmailReal } from './gas/gmail';
 import * as planilha from './gas/planilha';
 import * as props from './gas/propriedades';
-import { agoraLocal, momentoDeTexto, segundosDesde } from './gas/tempoLocal';
+import { agoraLocal, momentoDeTexto, segundosDesde, textoLocal } from './gas/tempoLocal';
 
 declare const __URL_ROBO__: string;
 declare const __URL_APP__: string;
@@ -299,7 +299,9 @@ const dependencias: DependenciasApi = {
 export function doGet(): GoogleAppsScript.Content.TextOutput {
   instalarContaEmbutida();
   instalarRecadosExtras();
-  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos(), lista: fcm.resumoAparelhos(), recadosAgendados: lerRecadosExtras().filter((iso) => iso >= agoraLocal().iso) } });
+  const quando = (ms: number): string => textoLocal(new Date(ms)).replace(' ', 'T');
+  const acessos = sessoes.resumoSessoes(props.armazem).map((s) => ({ ...s, criada: quando(s.criada), usadaEm: quando(s.usadaEm) }));
+  return json({ ok: true, app: 'Ponto Certo', hora: agoraLocal().iso, acessos, notificacoes: { servidorPronto: fcm.servidorPronto(), aparelhos: fcm.quantidadeAparelhos(), lista: fcm.resumoAparelhos(), recadosAgendados: lerRecadosExtras().filter((iso) => iso >= agoraLocal().iso) } });
 }
 
 export function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
