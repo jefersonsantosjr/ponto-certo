@@ -70,13 +70,17 @@ export async function gerarExcel(ExcelJS: ExcelJSModulo, r: Relatorio): Promise<
   return buffer as ArrayBuffer;
 }
 
-export function baixarArquivo(nome: string, dados: ArrayBuffer, tipo: string): void {
-  const url = URL.createObjectURL(new Blob([dados], { type: tipo }));
+/** Endereço local (blob:) do arquivo gerado; quem chama revoga quando não precisar mais. */
+export function urlDoArquivo(dados: ArrayBuffer, tipo: string): string {
+  return URL.createObjectURL(new Blob([dados], { type: tipo }));
+}
+
+/** Tenta baixar sem toque. No computador sempre baixa; no celular pode não baixar, por isso a tela também mostra o link para tocar. */
+export function baixarSozinho(url: string, nome: string): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = nome;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

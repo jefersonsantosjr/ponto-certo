@@ -1,10 +1,10 @@
 import { calcularPeriodo, dataBR, formatarDuracao, formatarSaldo } from '@ponto-certo/motor';
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { Avisos } from '../componentes/Avisos';
 import { BarrasPeriodo } from '../componentes/Barras';
 import { IconeBaixar, IconeImpressora } from '../componentes/Icones';
 import { vigentes } from '../dados/calculo';
-import { baixarArquivo, gerarExcel, moduloExcel } from '../dados/excel';
+import { baixarSozinho, gerarExcel, moduloExcel, urlDoArquivo } from '../dados/excel';
 import { classeDoSaldo, partesDoSaldo } from '../dados/formatos';
 import { intervaloDoAtalho, recortar, type Atalho, type Intervalo } from '../dados/periodo';
 import { montarRelatorio } from '../dados/relatorio';
@@ -12,6 +12,8 @@ import { useApp } from '../estado/contexto';
 
 const ATALHOS: Array<[Atalho, string]> = [['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês'], ['ano', 'Ano'], ['periodo', 'Período']];
 const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+const detalheDoErro = (e: unknown): string => (e instanceof Error ? `${e.name}: ${e.message}` : String(e)).slice(0, 160);
 
 export function Caderninho() {
   const app = useApp();
@@ -21,6 +23,7 @@ export function Caderninho() {
   const [intervalo, setIntervalo] = useState<Intervalo>(() => intervaloDoAtalho('mes', hoje));
   const [gerando, setGerando] = useState(false);
   const [falha, setFalha] = useState<string | null>(null);
+  const [arquivo, setArquivo] = useState<{ nome: string; url: string } | null>(null);
 
   const recorte = estado ? recortar(intervalo, estado.config.inicioBanco, hoje) : null;
   const periodo = useMemo(() => {
@@ -28,6 +31,13 @@ export function Caderninho() {
     return calcularPeriodo({ ...recorte, hoje, batidas: estado.batidas, respostas: vigentes(estado), ajustes: estado.ajustes, config: estado.config });
   }, [estado, recorte?.de, recorte?.ate, hoje]);
   const relatorioImpressao = useMemo(() => (estado && calculo && recorte ? montarRelatorio(estado, calculo.relogio, recorte.de, recorte.ate) : null), [estado, calculo, recorte?.de, recorte?.ate]);
+  // O arquivo gerado vale para o período em que foi gerado: trocou o período ou saiu da tela, ele some (e libera a memória).
+  useEffect(() => () => {
+    if (arquivo) URL.revokeObjectURL(arquivo.url);
+  }, [arquivo]);
+  useEffect(() => {
+    setArquivo(null);
+  }, [recorte?.de, recorte?.ate]);
 
   if (!estado || !calculo) return null;
 
@@ -45,12 +55,22 @@ export function Caderninho() {
     if (!recorte) return;
     setGerando(true);
     setFalha(null);
+    setArquivo(null);
+    let etapa = 'carregar o gerador';
     try {
       const ExcelJS = moduloExcel(await import('exceljs'));
+      etapa = 'montar o relatório';
       const relatorio = montarRelatorio(estado, calculo.relogio, recorte.de, recorte.ate);
-      baixarArquivo(relatorio.nomeArquivo, await gerarExcel(ExcelJS, relatorio), MIME_XLSX);
-    } catch {
-      setFalha('Não deu pra gerar o Excel. Tente de novo.');
+      etapa = 'gerar o arquivo';
+      const url = urlDoArquivo(await gerarExcel(ExcelJS, relatorio), MIME_XLSX);
+      setArquivo({ nome: relatorio.nomeArquivo, url });
+      try {
+        baixarSozinho(url, relatorio.nomeArquivo);
+      } catch {
+        // Não baixou sozinho: o botão "Baixar" que aparece na tela resolve com um toque.
+      }
+    } catch (e) {
+      setFalha(`Não deu pra gerar o Excel (${etapa} · ${detalheDoErro(e)}). Tente de novo; se repetir, manda um print desta mensagem.`);
     } finally {
       setGerando(false);
     }
@@ -104,9 +124,18 @@ export function Caderninho() {
             <div><small>Feriados</small><b>{periodo.resumo.feriados}</b></div>
             <div><small>Pendências</small><b class={periodo.resumo.pendencias ? 'ambar' : ''}>{periodo.resumo.pendencias}</b></div>
           </div>
-          <button type="button" class="exportar excel nao-imprimir" disabled={gerando} onClick={exportar}>
-            <IconeBaixar />{gerando ? 'Gerando o Excel…' : 'Exportar Excel (.xlsx)'}
-          </button>
+          {arquivo ? (
+            <>
+              <a class="exportar excel nao-imprimir" href={arquivo.url} download={arquivo.nome}><IconeBaixar />Baixar o Excel</a>
+              <div class="discreto nao-imprimir" style={{ textAlign: 'center', margin: '-2px 8px 10px' }}>
+                Pronto ✓ {arquivo.nome}. Não apareceu o download? Toque no botão verde. O arquivo fica na pasta Downloads e abre no Planilhas Google ou no Excel.
+              </div>
+            </>
+          ) : (
+            <button type="button" class="exportar excel nao-imprimir" disabled={gerando} onClick={exportar}>
+              <IconeBaixar />{gerando ? 'Gerando o Excel…' : 'Exportar Excel (.xlsx)'}
+            </button>
+          )}
           <button type="button" class="exportar pdf nao-imprimir" onClick={() => window.print()}>
             <IconeImpressora />Gerar PDF pra imprimir
           </button>
