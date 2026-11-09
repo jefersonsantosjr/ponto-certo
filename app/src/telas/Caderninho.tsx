@@ -7,7 +7,7 @@ import { vigentes } from '../dados/calculo';
 import { baixarSozinho, gerarExcel, moduloExcel, urlDoArquivo } from '../dados/excel';
 import { classeDoSaldo, partesDoSaldo } from '../dados/formatos';
 import { intervaloDoAtalho, recortar, type Atalho, type Intervalo } from '../dados/periodo';
-import { montarRelatorio } from '../dados/relatorio';
+import { montarImpressao, montarRelatorio } from '../dados/relatorio';
 import { useApp } from '../estado/contexto';
 
 const ATALHOS: Array<[Atalho, string]> = [['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês'], ['ano', 'Ano'], ['periodo', 'Período']];
@@ -30,7 +30,7 @@ export function Caderninho() {
     if (!estado || !recorte) return null;
     return calcularPeriodo({ ...recorte, hoje, batidas: estado.batidas, respostas: vigentes(estado), ajustes: estado.ajustes, config: estado.config });
   }, [estado, recorte?.de, recorte?.ate, hoje]);
-  const relatorioImpressao = useMemo(() => (estado && calculo && recorte ? montarRelatorio(estado, calculo.relogio, recorte.de, recorte.ate) : null), [estado, calculo, recorte?.de, recorte?.ate]);
+  const impressao = useMemo(() => (estado && calculo && recorte ? montarImpressao(montarRelatorio(estado, calculo.relogio, recorte.de, recorte.ate)) : null), [estado, calculo, recorte?.de, recorte?.ate]);
   // O arquivo gerado vale para o período em que foi gerado: trocou o período ou saiu da tela, ele some (e libera a memória).
   useEffect(() => () => {
     if (arquivo) URL.revokeObjectURL(arquivo.url);
@@ -141,14 +141,22 @@ export function Caderninho() {
           </button>
           {falha && <div class="aviso erro">{falha}</div>}
           <div class="discreto nao-imprimir" style={{ textAlign: 'center' }}>O arquivo traz todas as batidas com NSR e hash, as justificativas e a conferência com o Gmail.</div>
-          {relatorioImpressao && (
-            <table class="tabela-impressao so-impressao">
-              <thead><tr>{relatorioImpressao.dias.cabecalho.filter((_, i) => i !== 13).map((c, i) => <th key={i}>{c}</th>)}</tr></thead>
-              <tbody>
-                {relatorioImpressao.dias.linhas.map((linha, i) => <tr key={i}>{linha.filter((_, j) => j !== 13).map((c, j) => <td key={j}>{c}</td>)}</tr>)}
-                <tr>{relatorioImpressao.dias.total.filter((_, j) => j !== 13).map((c, j) => <td key={j}><b>{c}</b></td>)}</tr>
-              </tbody>
-            </table>
+          {impressao && (
+            <>
+              <table class="tabela-impressao so-impressao">
+                <thead><tr>{impressao.cabecalho.map((c, i) => <th key={i}>{c}</th>)}</tr></thead>
+                <tbody>
+                  {impressao.linhas.map((linha, i) => <tr key={i}>{linha.map((c, j) => <td key={j}>{c}</td>)}</tr>)}
+                  <tr>{impressao.total.map((c, j) => <td key={j}><b>{c}</b></td>)}</tr>
+                </tbody>
+              </table>
+              {impressao.informacoes.length > 0 && (
+                <div class="informacoes-impressao so-impressao">
+                  <h3>Informações por dia</h3>
+                  {impressao.informacoes.map((info) => <p key={info.data}><b>{info.data} ({info.dia})</b> {info.texto}</p>)}
+                </div>
+              )}
+            </>
           )}
         </>
       )}

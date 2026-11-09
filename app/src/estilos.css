@@ -334,6 +334,11 @@ textarea.campo { min-height: 72px; resize: vertical; }
   .tabela-impressao { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
   .tabela-impressao th, .tabela-impressao td { border: 1px solid #ccc; padding: 3px 5px; text-align: left; }
   .tabela-impressao th { background: #eef6f0; }
+  .tabela-impressao.so-impressao { display: table; }
+  .tabela-impressao tr { break-inside: avoid; }
+  .informacoes-impressao { margin-top: 14px; font-size: 10px; }
+  .informacoes-impressao h3 { margin: 0 0 6px; font-size: 12px; }
+  .informacoes-impressao p { margin: 0 0 5px; break-inside: avoid; }
 }
 
 /* ---------- notificações ---------- */

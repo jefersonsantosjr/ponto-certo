@@ -176,3 +176,26 @@ export function montarRelatorio(estado: Estado, relogio: Relogio, de: DataISO, a
 
   return { nomeArquivo: `ponto_${de}_a_${ate}.xlsx`, de, ate, periodo, resumo, dias, comprovantes, justificativas };
 }
+
+const COLUNA_SALDO_SEGUNDOS = 13;
+const COLUNA_OCORRENCIAS = 15;
+
+export interface Impressao {
+  cabecalho: string[];
+  linhas: Celula[][];
+  total: Celula[];
+  informacoes: Array<{ data: string; dia: string; texto: string }>;
+}
+
+/** O PDF: tabela só com os números, uma linha baixa por dia, e o texto das ocorrências em lista depois dela. */
+export function montarImpressao({ dias }: Pick<Relatorio, 'dias'>): Impressao {
+  const naTabela = <T>(linha: T[]): T[] => linha.filter((_, i) => i !== COLUNA_SALDO_SEGUNDOS && i !== COLUNA_OCORRENCIAS);
+  return {
+    cabecalho: naTabela(dias.cabecalho),
+    linhas: dias.linhas.map((linha) => naTabela(linha)),
+    total: naTabela(dias.total),
+    informacoes: dias.linhas
+      .filter((linha) => linha[COLUNA_OCORRENCIAS])
+      .map((linha) => ({ data: String(linha[0]), dia: String(linha[1]), texto: String(linha[COLUNA_OCORRENCIAS]) })),
+  };
+}

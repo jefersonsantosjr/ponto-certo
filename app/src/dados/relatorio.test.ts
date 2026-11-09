@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { estadoDaSemana } from './ajuda-teste';
 import { gerarExcel, moduloExcel } from './excel';
 import { intervaloDoAtalho, recortar } from './periodo';
-import { ABAS, montarRelatorio } from './relatorio';
+import { ABAS, montarImpressao, montarRelatorio } from './relatorio';
 
 const relogio = { hoje: '2026-10-23', agora: paraSegundos('15:42:00') };
 
@@ -37,6 +37,34 @@ describe('montarRelatorio', () => {
     const duplicada = r.comprovantes.linhas.find((l) => l[1] === '07:57:00');
     expect(duplicada?.[8]).toBe('duplicada (ignorada)');
     expect(r.nomeArquivo).toBe('ponto_2026-10-19_a_2026-10-22.xlsx');
+  });
+});
+
+describe('montarImpressao (PDF)', () => {
+  const r = montarRelatorio(estadoDaSemana(), relogio, '2026-10-19', '2026-10-22');
+  const impressao = montarImpressao(r);
+
+  it('a tabela dos dias fica sem o texto das ocorrências e sem o saldo em segundos', () => {
+    expect(impressao.cabecalho).toEqual(['Data', 'Dia', 'Entrada', 'Saída', 'Entrada', 'Saída', 'Entrada', 'Saída', 'Entrada', 'Saída', 'Trabalhado', 'Carga', 'Saldo do dia', 'Banco']);
+    expect(impressao.linhas[1].slice(0, 2)).toEqual(['20/10/2026', 'ter']);
+    expect(impressao.linhas[1].slice(12)).toEqual(['−0:25:00', r.dias.linhas[1][14]]);
+    expect(impressao.total.slice(12)).toEqual(['+0:32:00', '−1:33:00']);
+  });
+
+  it('as informações do dia vão para a lista do final, com a data e o dia da semana', () => {
+    const terca = impressao.informacoes.find((i) => i.data === '20/10/2026');
+    expect(terca?.dia).toBe('ter');
+    expect(terca?.texto).toContain('Saída 10:00:00–10:50:00 PENDENTE');
+    expect(terca?.texto).toContain('Sem tolerância da CLT');
+  });
+
+  it('dia sem nenhuma informação não entra na lista', () => {
+    const semTextoNaSegunda = { ...r, dias: { ...r.dias, linhas: r.dias.linhas.map((l, i) => (i === 0 ? [...l.slice(0, 15), ''] : l)) } };
+    expect(montarImpressao(semTextoNaSegunda).informacoes.map((i) => i.data)).not.toContain('19/10/2026');
+  });
+
+  it('o Excel continua com a coluna de ocorrências', () => {
+    expect(r.dias.cabecalho[15]).toBe('Ocorrências e justificativas');
   });
 });
 
