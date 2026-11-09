@@ -10,7 +10,7 @@ describe('jornada', () => {
       inicio: '2026-09-01', almocoPadrao: 4320, janelaAlmoco: { inicio: 43200, fim: 54000 },
       cargaPorDiaSemana: [0, 31680, 31680, 31680, 31680, 31680, 0],
     });
-    expect(cfg.regras).toEqual({ toleranciaLigada: true, toleranciaMarcacao: 300, tolerancia: 600, limiteDuplicada: 300, minimoParaDescontarAlmoco: 21600 });
+    expect(cfg.regras).toEqual({ toleranciaLigada: true, tolerancia: 600, limiteDuplicada: 300, minimoParaDescontarAlmoco: 21600 });
     expect(cfg.saldoInicial).toBe(0);
     expect(cfg.inicioBanco).toBe('2026-09-01');
   });
@@ -35,10 +35,9 @@ describe('jornada', () => {
     expect(infoDia('2026-08-31', cfg)).toMatchObject({ jornada: null, carga: 0, diaUtil: false });
   });
 
-  it('migrarConfig completa a config salva antes da tolerância por batida (08:00–18:00, 5min)', () => {
+  it('migrarConfig completa a config salva antes do horário de referência (08:00–18:00)', () => {
     const { entrada: _e, saida: _s, ...semHorario } = cfg.jornadas[0];
-    const { toleranciaMarcacao: _t, ...regrasAntigas } = cfg.regras;
-    const antiga = { ...cfg, saldoInicial: -60, jornadas: [semHorario], regras: regrasAntigas };
+    const antiga = { ...cfg, saldoInicial: -60, jornadas: [semHorario] };
     expect(migrarConfig(antiga)).toEqual({ ...cfg, saldoInicial: -60 });
     expect(migrarConfig(cfg)).toBe(cfg);
   });

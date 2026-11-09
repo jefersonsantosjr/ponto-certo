@@ -27,7 +27,7 @@ export function calcularDia(e: EntradaDia): ResultadoDia {
   if (e.data > e.hoje) {
     return {
       data: e.data, diaUtil: info.diaUtil, feriado: info.feriado, batidas: [], pares: [], intervalos: [],
-      trabalhado: 0, carga: info.carga, saldoBruto: 0, saldo: 0, toleranciaAplicada: false, ajusteTolerancia: 0, tolerancias: [],
+      trabalhado: 0, carga: info.carga, saldoBruto: 0, saldo: 0, toleranciaAplicada: false, ajusteTolerancia: 0, variacoes: [], tolerancias: [],
       almocoDescontado: 0, abonado: 0, pendencias: [], status: 'futuro',
     };
   }
@@ -96,27 +96,29 @@ export function calcularDia(e: EntradaDia): ResultadoDia {
     if (!r && fechado) pendencias.push({ tipo: 'dia_sem_batida', data: e.data });
   }
 
-  // 8–9: saldo e tolerância da CLT (art. 58 §1º; Súmula 366 do TST: passou da tolerância, conta tudo).
+  // 8–9: saldo e tolerância da CLT (art. 58 §1º), como o RH aplica: a soma das variações decide.
   const saldoBruto = trabalhado - carga;
   let ajusteTolerancia = 0;
   let toleranciaAplicada = false;
-  const tolerancias: MarcacaoTolerada[] = [];
+  const variacoes: MarcacaoTolerada[] = [];
+  let tolerancias: MarcacaoTolerada[] = [];
   const jornada = info.jornada;
   if (regras.toleranciaLigada && jornada?.entrada !== undefined && jornada.saida !== undefined) {
-    // Por batida: entrada × horário de entrada e última saída × horário de saída. O almoço conta exato.
-    const limite = regras.toleranciaMarcacao ?? 5 * 60;
-    const neutralizar = (marcacao: MarcacaoTolerada['marcacao'], segundos: Segundos, diferenca: Segundos): void => {
-      if (diferenca !== 0 && Math.abs(diferenca) <= limite) {
-        ajusteTolerancia += diferenca;
-        toleranciaAplicada = true;
-        tolerancias.push({ marcacao, segundos, diferenca });
-      }
+    // Entrada × horário de entrada e última saída × horário de saída. Até o limite do dia nada conta; passou, vale tudo como registrado.
+    // O almoço conta exato.
+    const medir = (marcacao: MarcacaoTolerada['marcacao'], segundos: Segundos, diferenca: Segundos): void => {
+      if (diferenca !== 0) variacoes.push({ marcacao, segundos, diferenca });
     };
     if (carga > 0 && mantidas.length > 0) {
       const entrada = mantidas[0].segundos;
       const saida = mantidas[mantidas.length - 1].segundos;
-      neutralizar('entrada', entrada, jornada.entrada - entrada); // + = chegou antes
-      if (mantidas.length % 2 === 0) neutralizar('saida', saida, saida - jornada.saida); // + = saiu depois
+      medir('entrada', entrada, jornada.entrada - entrada); // + = chegou antes
+      if (mantidas.length % 2 === 0) medir('saida', saida, saida - jornada.saida); // + = saiu depois
+    }
+    if (variacoes.length > 0 && variacoes.reduce((s, v) => s + Math.abs(v.diferenca), 0) <= regras.tolerancia) {
+      tolerancias = variacoes;
+      ajusteTolerancia = variacoes.reduce((s, v) => s + v.diferenca, 0);
+      toleranciaAplicada = true;
     }
   } else if (regras.toleranciaLigada && saldoBruto !== 0 && Math.abs(saldoBruto) <= regras.tolerancia) {
     // Configs antigas, sem horário de referência: tolerância no total do dia.
@@ -131,7 +133,7 @@ export function calcularDia(e: EntradaDia): ResultadoDia {
 
   return {
     data: e.data, diaUtil: info.diaUtil, feriado: info.feriado, batidas, pares, intervalos: classificados.intervalos,
-    trabalhado, carga, saldoBruto, saldo, toleranciaAplicada, ajusteTolerancia, tolerancias, almocoDescontado,
+    trabalhado, carga, saldoBruto, saldo, toleranciaAplicada, ajusteTolerancia, variacoes, tolerancias, almocoDescontado,
     abonado: abonoIntervalos + abonoManual, classificacao, pendencias, status,
   };
 }

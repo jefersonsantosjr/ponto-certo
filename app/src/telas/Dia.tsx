@@ -49,7 +49,7 @@ export function Dia({ parametro }: { parametro: string | null }) {
 
   const jornada = jornadaVigente(data, estado.config.jornadas) ?? estado.config.jornadas[0];
   const saldo = partesDoSaldo(dia.saldo);
-  const tolerancia = descreverToleranciaDoDia(dia);
+  const tolerancia = descreverToleranciaDoDia(dia, estado.config.regras);
   const abonoPendente = dia.pendencias.find((p): p is Extract<Pendencia, { tipo: 'abono_intervalo' }> => p.tipo === 'abono_intervalo');
   const efeitoAbono = abonoPendente
     ? efeitoDaHipotese(estado, calculo.relogio, data, { respostas: [{ ...abonoPendente, abonado: true, justificativa: 'prévia' }] })
@@ -79,7 +79,7 @@ export function Dia({ parametro }: { parametro: string | null }) {
         </div>
         {STATUS[dia.status] && <div class="discreto" style={{ marginTop: '4px' }}>{STATUS[dia.status]}</div>}
         {dia.feriado && <div class="chip neutro">{dia.feriado}</div>}
-        {tolerancia && <div class="chip neutro">{tolerancia}</div>}
+        {tolerancia && <div class="chip neutro" style={{ borderRadius: '14px' }}>{tolerancia}</div>}
         {efeitoAbono && abonoPendente && (
           <div class="chip ambar">Se a saída das {formatarHoraCurta(abonoPendente.inicio)} for abonada: {formatarSaldo(efeitoAbono.saldoDia)}</div>
         )}

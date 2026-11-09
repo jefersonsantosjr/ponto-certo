@@ -66,7 +66,7 @@ function ocorrencias(dia: ResultadoDia, estado: Estado): string {
   for (const a of estado.ajustes.filter((x) => x.ativo && x.data === dia.data)) {
     itens.push(`${a.tipo === 'abono_horas' ? 'Abono de' : 'Ajuste do banco'} ${formatarSaldo(a.segundos)}: ${a.justificativa}`);
   }
-  const tolerancia = descreverToleranciaDoDia(dia);
+  const tolerancia = descreverToleranciaDoDia(dia, estado.config.regras);
   if (tolerancia) itens.push(tolerancia);
   return itens.join(' · ');
 }

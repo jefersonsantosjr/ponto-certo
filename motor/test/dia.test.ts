@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Resposta } from '../src/tipos';
+import type { Resposta, VersaoJornada } from '../src/tipos';
 import { batida, h } from './ajuda';
 import { CONFIG, diaDeTeste } from './ajuda-dia';
 
@@ -21,35 +21,51 @@ describe('calcularDia: base', () => {
   // Tolerância por batida (CLT art. 58 §1º + Súmula 366 do TST): entrada × 08:00 e saída × 18:00.
   // Até 5min00s em cada uma não conta; a partir de 5min01s conta a diferença inteira.
   it.each([
-    ['08:00:00', '17:55:00', 0, true],
-    ['08:00:00', '17:54:59', -301, false],
-    ['08:00:00', '18:05:00', 0, true],
-    ['08:00:00', '18:05:01', 301, false],
-    ['08:05:00', '18:00:00', 0, true],
-    ['08:05:01', '18:00:00', -301, false],
-    ['07:55:00', '18:00:00', 0, true],
-    ['07:54:59', '18:00:00', 301, false],
-    ['08:04:00', '18:04:00', 0, true],
-    ['07:56:00', '18:21:00', 1260, true],
-  ])('tolerância por batida: entrada %s, saída %s → saldo %i', (entrada, saida, saldo, aplicada) => {
+    ['08:00:00', '18:00:00', 0, false],
+    ['08:00:00', '18:10:00', 0, true],
+    ['08:00:00', '18:10:01', 601, false],
+    ['08:10:00', '18:00:00', 0, true],
+    ['08:10:01', '18:00:00', -601, false],
+    ['07:55:00', '18:05:00', 0, true],
+    ['07:55:00', '18:05:01', 601, false],
+    ['08:05:00', '18:05:01', 1, false],
+    ['08:03:00', '18:04:00', 0, true],
+    ['08:07:00', '18:02:00', 0, true],
+    ['07:56:00', '18:21:00', 1500, false],
+  ])('tolerância pela soma das variações: entrada %s, saída %s → saldo %i', (entrada, saida, saldo, aplicada) => {
     const d = diaDeTeste('2026-10-19', [entrada, '12:00', '13:12', saida]);
     expect(d.saldo).toBe(saldo);
     expect(d.toleranciaAplicada).toBe(aplicada);
   });
 
-  it('diz quais batidas a tolerância segurou (positivo = a favor dela)', () => {
+  describe('exemplos do RH (jornada 08:00–17:00, 8h de carga, 1h de almoço)', () => {
+    const jornada: VersaoJornada = { ...CONFIG.jornadas[0], saida: h('17:00'), almocoPadrao: 3600, cargaPorDiaSemana: [0, 28800, 28800, 28800, 28800, 28800, 0] };
+    const config = { ...CONFIG, jornadas: [jornada] };
+
+    it('exemplo 1: 08:03 e 17:04 somam 7min: nem desconto nem crédito', () => {
+      expect(diaDeTeste('2026-10-19', ['08:03', '12:00', '13:00', '17:04'], { config })).toMatchObject({ saldoBruto: 60, ajusteTolerancia: 60, saldo: 0, toleranciaAplicada: true });
+    });
+
+    it('exemplo 2: 08:07 e 17:05 somam 12min: conta o registrado', () => {
+      expect(diaDeTeste('2026-10-19', ['08:07', '12:00', '13:00', '17:05'], { config })).toMatchObject({ saldoBruto: -120, ajusteTolerancia: 0, saldo: -120, toleranciaAplicada: false, tolerancias: [] });
+    });
+  });
+
+  it('diz o que variou e o que a tolerância segurou (positivo = a favor dela)', () => {
     expect(diaDeTeste('2026-10-19', ['07:56:00', '12:00', '13:12', '18:03:10']).tolerancias).toEqual([
       { marcacao: 'entrada', segundos: h('07:56'), diferenca: 240 },
       { marcacao: 'saida', segundos: h('18:03:10'), diferenca: 190 },
     ]);
-    expect(diaDeTeste('2026-10-19', ['08:03', '12:00', '13:12', '18:21']).tolerancias).toEqual([
-      { marcacao: 'entrada', segundos: h('08:03'), diferenca: -180 },
-    ]);
-    expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:12', '18:00']).tolerancias).toEqual([]);
+    expect(diaDeTeste('2026-10-19', ['08:03', '12:00', '13:12', '18:21'])).toMatchObject({
+      tolerancias: [],
+      variacoes: [{ marcacao: 'entrada', segundos: h('08:03'), diferenca: -180 }, { marcacao: 'saida', segundos: h('18:21'), diferenca: 1260 }],
+    });
+    expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:12', '18:00'])).toMatchObject({ tolerancias: [], variacoes: [] });
   });
 
   it('o almoço conta pela duração exata, sem tolerância', () => {
     expect(diaDeTeste('2026-10-19', ['08:00', '12:00', '13:15', '18:00'])).toMatchObject({ saldo: -180, toleranciaAplicada: false });
+    expect(diaDeTeste('2026-10-19', ['08:03', '12:00', '13:15', '18:04'])).toMatchObject({ saldoBruto: -120, ajusteTolerancia: 60, saldo: -180, toleranciaAplicada: true });
   });
 
   it('dia em andamento: a tolerância vale para a entrada', () => {
@@ -141,17 +157,17 @@ describe('calcularDia: base', () => {
 describe('calcularDia: intervalos e almoço', () => {
   const EXEMPLO = ['07:56', '07:57', '10:00', '10:50', '12:10', '13:22', '18:21'];
 
-  it('exemplo 6.7 da spec, sem resposta: −29min (entrada 4min antes não conta) e pendência de abono', () => {
+  it('exemplo 6.7 da spec, sem resposta: −25min (4min + 21min passam de 10min, conta o registrado) e pendência de abono', () => {
     const d = diaDeTeste('2026-10-20', EXEMPLO);
     expect(d.trabalhado).toBe(30180);
-    expect(d.saldo).toBe(-1740);
+    expect(d.saldo).toBe(-1500);
     expect(d.intervalos.map((i) => [i.tipo, i.inicio, i.fim])).toEqual([['saida', h('10:00'), h('10:50')], ['almoco', h('12:10'), h('13:22')]]);
     expect(d.pendencias).toEqual([{ tipo: 'abono_intervalo', data: '2026-10-20', inicio: h('10:00'), fim: h('10:50') }]);
   });
 
-  it('exemplo 6.7 com abono: +21min', () => {
+  it('exemplo 6.7 com abono: +25min', () => {
     const respostas: Resposta[] = [{ tipo: 'abono_intervalo', data: '2026-10-20', inicio: h('10:00'), fim: h('10:50'), abonado: true, justificativa: 'Dentista' }];
-    expect(diaDeTeste('2026-10-20', EXEMPLO, { respostas })).toMatchObject({ trabalhado: 33180, saldo: 1260, abonado: 3000, pendencias: [] });
+    expect(diaDeTeste('2026-10-20', EXEMPLO, { respostas })).toMatchObject({ trabalhado: 33180, saldo: 1500, abonado: 3000, pendencias: [] });
   });
 
   it('só 2 batidas num dia longo: desconta 1h12 e pergunta', () => {

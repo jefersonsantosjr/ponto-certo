@@ -21,7 +21,7 @@ export function Config() {
   const tolerancia = !regras.toleranciaLigada
     ? 'desligada'
     : porBatida
-      ? `até ${formatarDuracao(regras.toleranciaMarcacao ?? 300)} na entrada e na saída`
+      ? `até ${formatarDuracao(regras.tolerancia)} somando entrada e saída`
       : `±${formatarDuracao(regras.tolerancia)} no total do dia`;
   const saude = avaliarSaude(estado.saude, new Date());
   const conf = estado.saude.ultimaConferencia;
@@ -55,7 +55,7 @@ export function Config() {
       <div class="secao">Regras do cálculo</div>
       <div class="cartao lista">
         <div class="item"><span>Tolerância da CLT</span><b>{tolerancia}</b></div>
-        {regras.toleranciaLigada && porBatida && <div class="item"><span>Passou da tolerância</span><b>conta tudo · almoço conta exato</b></div>}
+        {regras.toleranciaLigada && porBatida && <div class="item"><span>Passou da tolerância</span><b>conta o registrado · almoço conta exato</b></div>}
         <div class="item"><span>Batida duplicada</span><b>até {formatarDuracao(regras.limiteDuplicada)} depois</b></div>
         <div class="item"><span>Início do banco</span><b>{dataBR(estado.config.inicioBanco)} · saldo {formatarSaldo(estado.config.saldoInicial)}</b></div>
         <div class="item"><span>Feriados</span><b>nacionais{feriados.incluir.length ? ` + ${feriados.incluir.length} locais` : ''}{feriados.excluir.length ? ` − ${feriados.excluir.length}` : ''}</b></div>

@@ -206,12 +206,14 @@ Versão inicial, que vale desde o início do banco:
 6. **Trabalhado** = soma dos pares + saídas abonadas + abonos manuais do dia − almoço descontado (passo 5).
 7. **Carga do dia:** a da jornada vigente. É 0 em fim de semana e feriado, e também quando o dia foi classificado como atestado, abonado, férias ou feriado.
 8. **Saldo bruto** = trabalhado − carga.
-9. **Tolerância da CLT (art. 58 §1º e Súmula 366 do TST)**, ligada por padrão, **por batida** (regra informada pelo RH em 26/10/2026):
+9. **Tolerância da CLT (art. 58 §1º)**, ligada por padrão, **pela soma do dia** (regra enviada pelo RH em 09/11/2026):
    - a **entrada** (primeira batida) é comparada com 08:00, e a **saída** (última batida, se a quantidade for par) com 18:00;
-   - diferença de até **5 min (300 s, inclusive)**, para mais ou para menos, não conta: o saldo = saldo bruto − essas diferenças;
-   - a partir de 5min01s, **conta a diferença inteira** (7 min de atraso descontam 7 min; chegar 8 min antes conta +8 min);
+   - somam-se as duas variações em valor absoluto: chegar ou sair, antes ou depois, tudo é variação;
+   - soma de até **10 min (600 s, inclusive)**: nada conta, nem atraso nem crédito (saldo = saldo bruto − as variações);
+   - a partir de 10min01s, **conta tudo como registrado**, inclusive a batida que sozinha estaria dentro de 5 min;
+   - exemplos do RH (jornada 08:00–17:00): 08:03 e 17:04 somam 7 min, sem desconto nem crédito; 08:07 e 17:05 somam 12 min, conta o registrado;
    - o **almoço não tem tolerância**: conta pela duração exata;
-   - a tela do dia e a planilha dizem quais batidas a tolerância segurou (ex.: "entrada 07:56:00 (4min antes) não conta");
+   - a tela do dia e a planilha mostram a conta do dia, dentro ou fora do limite, para conferir com a folha do RH (ex.: "Sem tolerância da CLT: entrada 07:56:00 (4min antes) + saída 18:21:00 (21min depois) = 25min no dia, passou de 10min, conta o registrado");
    - configs gravadas antes disso, sem horário de referência, são completadas automaticamente pelo robô; uma jornada sem horário de referência usa a regra antiga (±10 min no total do dia).
 10. **Dia útil sem nenhuma batida:** saldo = −carga, e abre a pendência "folga, atestado, férias ou feriado?". Enquanto não houver resposta, conta como **folga do banco**.
 
@@ -221,7 +223,7 @@ Versão inicial, que vale desde o início do banco:
 - **Previsão de saída:** quando ela está "dentro" (a última batida foi uma entrada), a previsão é a hora dessa última entrada + (carga − horas já trabalhadas).
   - Se ela ainda não almoçou (nenhuma saída começando no horário de almoço), soma o almoço padrão (1h12).
   - A conta é feita em segundos, e a tela mostra o horário arredondado para o minuto seguinte. Assim, sair naquele minuto fecha o dia sem ficar devendo.
-  - **Com a tolerância (passo 9 de 6.4):** o que a tolerância segurou na entrada é somado (chegou antes) ou descontado (atrasou) do que falta. Se a previsão cair na janela da saída (17:55–18:05), o saldo fica parado ali: se não fica negativo, a previsão vira 17:55; se fica, vira 18:05:01, porque até 18:05 a saída não paga nada. Exemplo: entrada 07:59:38 e almoço de 1h12 → previsão 17:55.
+  - **Com a tolerância (passo 9 de 6.4):** a variação da entrada gasta parte dos 10 min, e o que sobra é a janela da saída em volta das 18:00. Na janela o saldo fica parado: se não fica negativo, a previsão é o começo da janela; se fica, é o primeiro segundo depois dela, quando tudo volta a contar. Antes da janela conta o registrado. Exemplo: entrada 07:57 e almoço de 1h12 → sobram 7 min → previsão 17:53.
 
 ### 6.6 Banco de horas
 
@@ -235,13 +237,13 @@ Versão inicial, que vale desde o início do banco:
 Terça, 20/10. Batidas (todas com segundos :00): 07:56, 07:57, 10:00, 10:50, 12:10, 13:22, 18:21.
 
 - 07:57 está a 1 min de 07:56, então é duplicada e não conta.
-- A entrada 07:56 está 4 min antes das 08:00, dentro da tolerância: esses 4 min não contam. A saída 18:21 passou 21 min, então conta inteira.
+- A entrada 07:56 está 4 min antes das 08:00 e a saída 18:21 passou 21 min: somam 25 min, mais que os 10 min da tolerância, então conta o registrado.
 - Pares: 07:56–10:00 (2h04), 10:50–12:10 (1h20), 13:22–18:21 (4h59). Trabalhado = 8h23.
 - Intervalos:
   - 12:10–13:22 começa no horário de almoço e dura 1h12, então é o almoço;
   - 10:00–10:50 é uma saída intermediária de 50 min e abre a pendência de abono.
-- **Sem abono:** 8h23 − 8h48 − 4 min (tolerância) = **−29 min**.
-- **Com abono:** 8h23 + 50 min − 8h48 − 4 min (tolerância) = **+21 min**.
+- **Sem abono:** 8h23 − 8h48 = **−25 min**.
+- **Com abono:** 8h23 + 50 min − 8h48 = **+25 min**.
 
 ## 7. Pendências, respostas e justificativas
 
@@ -459,7 +461,7 @@ ponto-certo/
   - dia útil sem batida e cada uma das respostas possíveis;
   - feriado fixo, Sexta-feira Santa (03/04/2026) e feriado local;
   - trabalho no fim de semana;
-  - tolerância por batida no limite, na entrada e na saída, antes e depois (5min00s não conta, 5min01s conta inteira), almoço exato e a regra antiga para config sem horário de referência;
+  - tolerância pela soma do dia no limite (10min00s não conta, 10min01s conta o registrado), os dois exemplos do RH, almoço exato e a regra antiga para config sem horário de referência;
   - banco passando de um mês para outro;
   - ajuste manual;
   - mudança de versão da jornada;

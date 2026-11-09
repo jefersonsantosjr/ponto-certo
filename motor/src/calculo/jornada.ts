@@ -9,7 +9,6 @@ const CARGA_DIA_UTIL = 8 * HORA + 48 * MINUTO;
 
 export const REGRAS_PADRAO: Readonly<Regras> = {
   toleranciaLigada: true,
-  toleranciaMarcacao: 5 * MINUTO,
   tolerancia: 10 * MINUTO,
   limiteDuplicada: 5 * MINUTO,
   minimoParaDescontarAlmoco: 6 * HORA,
@@ -49,12 +48,7 @@ export function migrarConfig(c: ConfigCalculo): ConfigCalculo {
     mudou = true;
     return { ...j, entrada: ref.entrada, saida: ref.saida };
   });
-  let regras = c.regras;
-  if (regras.toleranciaMarcacao === undefined) {
-    mudou = true;
-    regras = { ...regras, toleranciaMarcacao: REGRAS_PADRAO.toleranciaMarcacao };
-  }
-  return mudou ? { ...c, jornadas, regras } : c;
+  return mudou ? { ...c, jornadas } : c;
 }
 
 export function jornadaVigente(data: DataISO, jornadas: VersaoJornada[]): VersaoJornada | null {

@@ -54,9 +54,7 @@ export interface VersaoJornada {
 
 export interface Regras {
   toleranciaLigada: boolean;
-  /** Tolerância por batida (entrada e saída), usada quando a jornada tem horário de referência. Padrão 5 min. */
-  toleranciaMarcacao?: Segundos;
-  /** Tolerância do total do dia, usada só em jornadas sem horário de referência (configs antigas). */
+  /** Limite do dia: com horário de referência, para a soma das variações de entrada e saída; sem ele (configs antigas), para o total do dia. */
   tolerancia: Segundos;
   limiteDuplicada: Segundos;
   minimoParaDescontarAlmoco: Segundos;
@@ -108,7 +106,7 @@ export type Pendencia =
 
 export type StatusDia = 'normal' | 'sem_batida' | 'fim_de_semana' | 'feriado' | 'em_andamento' | 'futuro';
 
-/** Batida que a tolerância por batida segurou (não entrou no saldo). */
+/** Diferença de uma batida (entrada ou última saída) para o horário de referência. */
 export interface MarcacaoTolerada {
   marcacao: 'entrada' | 'saida';
   segundos: Segundos;
@@ -130,7 +128,9 @@ export interface ResultadoDia {
   toleranciaAplicada: boolean;
   /** Quanto a tolerância tirou do saldo bruto (saldo = saldoBruto − ajusteTolerancia). */
   ajusteTolerancia: Segundos;
-  /** Batidas seguradas pela tolerância por batida (vazio na regra antiga, do total do dia). */
+  /** Tudo o que variou na entrada e na saída, tendo a tolerância valido ou não (vazio na regra antiga, do total do dia). */
+  variacoes: MarcacaoTolerada[];
+  /** As variações que a tolerância segurou: todas (soma dentro do limite) ou nenhuma. */
   tolerancias: MarcacaoTolerada[];
   almocoDescontado: Segundos;
   abonado: Segundos;
