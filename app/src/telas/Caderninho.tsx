@@ -12,6 +12,7 @@ import { useApp } from '../estado/contexto';
 
 const ATALHOS: Array<[Atalho, string]> = [['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês'], ['ano', 'Ano'], ['periodo', 'Período']];
 const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const LOGO = `${import.meta.env.BASE_URL}icones/icone-192.png`;
 
 const detalheDoErro = (e: unknown): string => (e instanceof Error ? `${e.name}: ${e.message}` : String(e)).slice(0, 160);
 
@@ -85,7 +86,13 @@ export function Caderninho() {
         <h1>Caderninho 📒</h1>
         <p>Resumo e exportação de qualquer período</p>
       </div>
-      <div class="so-impressao"><h2 style={{ margin: 0 }}>Ponto Certo · {recorte ? `${dataBR(recorte.de)} a ${dataBR(recorte.ate)}` : ''}</h2></div>
+      <div class="cabecalho-impressao so-impressao">
+        <img src={LOGO} alt="" />
+        <div>
+          <strong>Ponto Certo</strong>
+          <span>Relatório de ponto{recorte ? ` · ${dataBR(recorte.de)} a ${dataBR(recorte.ate)}` : ''}</span>
+        </div>
+      </div>
 
       <div class="atalhos-periodo nao-imprimir">
         {ATALHOS.map(([chave, rotulo]) => (
